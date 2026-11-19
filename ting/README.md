@@ -24,6 +24,7 @@ In an empty folder, in Claude Code:
   loops until they're clean.
 - `/ting:check` checks what's in the folder without saving.
 - `/ting:save` saves a version (every one is kept and checked). If someone saved from elsewhere, it merges.
+- `/ting:play` gives a link to play your latest saved version in a browser, in a phone beside its quests.
 - `/ting:link` gives a code for the Ting app, so you can play your drafts on your phone.
 - `/ting:publish` sends it for review. Ting publishes it to the catalogue once it's approved, and its lines are
   recorded then.

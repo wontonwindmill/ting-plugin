@@ -16,5 +16,5 @@ It prints a six-letter code that lasts fifteen minutes. Tell the person:
 3. The pack shows under **Your drafts**. Tap **Play** to put its latest saved version into your story.
 
 Linking is once per pack: after that, each version they save (`/ting:save`) is there the next time they open
-the world, or straight away with **Play** again. A draft's lines are silent until the pack is published, which
-records them.
+the world, or straight away with **Play** again. Until the pack is published (which records its lines in the
+town's voices), a draft's lines are said by the phone's own voice, in an app from the Ting beta or later.

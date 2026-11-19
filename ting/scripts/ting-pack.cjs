@@ -15,6 +15,7 @@
 //   ting-pack submit [folder]                send the latest saved version for review; Ting publishes it once approved
 //   ting-pack publish [folder] [--original]  (Ting's key, TING_ADMIN_KEY) publish the version sent for review
 //   ting-pack link [folder]                  a short code to type into the app, to play your drafts on your phone
+//   ting-pack play [folder]                  where to play the latest saved version in a browser
 //   ting-pack upload [folder] [--invite c]   put a pack that's only here on the service: prints its code
 //   ting-pack code [folder]                  the code, to open the pack somewhere else
 //   add --json for one JSON object; the service is TING_SERVER (https://ting-packs-wh.azurewebsites.net) unless the folder says
@@ -222,6 +223,13 @@ const commands = {
       say: `${link}\nOn your phone, in Ting: Quests, then Stories by others, then "Link a pack". Type ${link} (it lasts ${minutes} minutes). Then every version you save shows there, to play before you publish.` }
   },
 
+  /** Where to play the pack's latest saved version in a browser, in a phone beside its quests. */
+  async play(folder) {
+    const sync = readSync(folder)
+    const url = `${sync.server.replace(/\/$/, '')}/play/${sync.id}`
+    return { ok: true, url, say: `${url}\nYour latest saved version, in a browser (Chrome, Edge or Safari 26). Changes here show once they're saved.` }
+  },
+
   async code(folder) {
     const sync = readSync(folder)
     return { ok: true, code: sync.code, say: sync.code }
@@ -249,6 +257,7 @@ if (require.main === module) {
     push: () => commands.push(rest[0] ?? '.'),
     publish: () => commands.publish(rest[0] ?? '.', { original: args.includes('--original') }),
     link: () => commands.link(rest[0] ?? '.'),
+    play: () => commands.play(rest[0] ?? '.'),
     code: () => commands.code(rest[0] ?? '.'),
   }[verb]
   if (!run) {
