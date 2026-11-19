@@ -1,0 +1,12 @@
+{
+  "name": "ting",
+  "owner": { "name": "Ting" },
+  "description": "Tools for writing Ting packs.",
+  "plugins": [
+    {
+      "name": "ting",
+      "source": "./ting",
+      "description": "Write story packs for Ting's language-learning towns: open a pack by its code, plan it, write it, check it and publish it."
+    }
+  ]
+}

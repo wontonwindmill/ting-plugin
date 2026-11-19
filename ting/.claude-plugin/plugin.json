@@ -1,0 +1,8 @@
+{
+  "name": "ting",
+  "displayName": "Ting",
+  "version": "0.1.0",
+  "description": "Write story packs for Ting's language-learning towns: open a pack by its code, plan it, write it, check it and publish it, with no git.",
+  "author": { "name": "Ting" },
+  "keywords": ["ting", "language learning", "stories", "creator"]
+}
