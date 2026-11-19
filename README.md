@@ -11,6 +11,6 @@ In Claude Code:
 /plugin install ting@ting
 ```
 
-Then, in an empty folder, `/ting:new`. Start here: https://ting-packs-wh.azurewebsites.net/start. For now, Ting is invite-only.
+Then, in an empty folder, `/ting:new`. Start here: https://studio.tinglanguage.com/start. For now, Ting is invite-only.
 
 The plugin itself, and what each command does: [ting/README.md](ting/README.md).

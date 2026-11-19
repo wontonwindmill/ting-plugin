@@ -15,15 +15,15 @@
 //   ting-pack submit [folder]                send the latest saved version for review; Ting publishes it once approved
 //   ting-pack publish [folder] [--original]  (Ting's key, TING_ADMIN_KEY) publish the version sent for review
 //   ting-pack link [folder]                  a short code to type into the app, to play your drafts on your phone
-//   ting-pack play [folder]                  where to play the latest saved version in a browser
+//   ting-pack play [folder]                  the latest saved version in Ting Studio, playing beside it in a browser
 //   ting-pack upload [folder] [--invite c]   put a pack that's only here on the service: prints its code
 //   ting-pack code [folder]                  the code, to open the pack somewhere else
-//   add --json for one JSON object; the service is TING_SERVER (https://ting-packs-wh.azurewebsites.net) unless the folder says
+//   add --json for one JSON object; the service is TING_SERVER (https://studio.tinglanguage.com) unless the folder says
 const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 
-const DEFAULT_SERVER = process.env.TING_SERVER ?? 'https://ting-packs-wh.azurewebsites.net'
+const DEFAULT_SERVER = process.env.TING_SERVER ?? 'https://studio.tinglanguage.com'
 const syncFile = folder => path.join(folder, '.ting', 'sync.json')
 const packFile = folder => path.join(folder, 'pack.json')
 const hash = text => crypto.createHash('sha256').update(text).digest('hex')
@@ -223,11 +223,13 @@ const commands = {
       say: `${link}\nOn your phone, in Ting: Quests, then Stories by others, then "Link a pack". Type ${link} (it lasts ${minutes} minutes). Then every version you save shows there, to play before you publish.` }
   },
 
-  /** Where to play the pack's latest saved version in a browser, in a phone beside its quests. */
+  /** The pack's latest saved version in Ting Studio: its quests laid into its town's story, playing in a phone beside them. */
   async play(folder) {
     const sync = readSync(folder)
-    const url = `${sync.server.replace(/\/$/, '')}/play/${sync.id}`
-    return { ok: true, url, say: `${url}\nYour latest saved version, in a browser (Chrome, Edge or Safari 26). Changes here show once they're saved.` }
+    const site = sync.server.replace(/\/$/, '')
+    const url = `${site}/studio/${sync.id}`
+    return { ok: true, url, game: `${site}/play/${sync.id}`,
+      say: `${url}\nYour latest saved version in Ting Studio, playing beside it (Chrome, Edge or Safari 26). Changes here show once they're saved; reload to see them.` }
   },
 
   async code(folder) {

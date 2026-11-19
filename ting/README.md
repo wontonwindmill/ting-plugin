@@ -24,7 +24,7 @@ In an empty folder, in Claude Code:
   loops until they're clean.
 - `/ting:check` checks what's in the folder without saving.
 - `/ting:save` saves a version (every one is kept and checked). If someone saved from elsewhere, it merges.
-- `/ting:play` gives a link to play your latest saved version in a browser, in a phone beside its quests.
+- `/ting:play` opens your latest saved version in Ting Studio, in a browser, with the game playing it beside.
 - `/ting:link` gives a code for the Ting app, so you can play your drafts on your phone.
 - `/ting:publish` sends it for review. Ting publishes it to the catalogue once it's approved, and its lines are
   recorded then.
@@ -37,5 +37,5 @@ In an empty folder, in Claude Code:
   written (`kit/README.md`). Refreshed when you open the pack.
 - `.ting/`: where the pack client keeps the code, the version you're on, and the last check and script.
 
-The pack service is `https://ting-packs-wh.azurewebsites.net`; set `TING_SERVER` to use another (Ting's own development runs one at
+The pack service is `https://studio.tinglanguage.com`; set `TING_SERVER` to use another (Ting's own development runs one at
 `http://localhost:8090`).
