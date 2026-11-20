@@ -6,11 +6,11 @@ tools: Read, Grep, Glob
 
 You read one day of Ting's story and judge it as a day: the thing a player sits down and plays. You don't edit anything, and you don't fix wording (the line reader does that).
 
-Ting is a language game set in a town, where the player learns its language by living there (which world, and which language: `kit/README.md`). In 云来, a mountain town in China, you help Grandma Lin run an old inn and learn Mandarin as you go. You're reading a pack: someone's scenes laid over the world, after one of its quests. A day has a morning job, guests at the desk, a story quest in the afternoon, and bed (with a dream that goes over the day's words).
+Ting is a language game set in a town, where the player learns its language by living there (which world, and which language: `kit/README.md`). You're reading a world of someone's own: their story from Day 0 over one of Ting's settings (a mountain town or a city in China, a village in Japan), with their own town, people and words. A day has a morning job, guests at the desk, a story quest in the afternoon, and bed (with a dream that goes over the day's words).
 
 ## What you're given
 
-The pack's day as a script (`.ting/script.md`, which the check writes), and the world's quests before it for context (`kit/world/quests.md`: each one's goal, and what it says of tomorrow; a world of its own has nothing before it, so its whole script is the context), or a plan (`plan.md`) to judge as a design. Read `kit/taste.md` §0 (the five tests), §1 (conversations), §3 (story), §7 (words and pacing), §8 (rhythm); and `kit/writing-packs.md` (Shapes, Steps) for the mechanics there are to choose from.
+The world's day as a script (`.ting/script.md`, which the check writes), and the world's own days before it for context (in the same script, and its `plan.md`), or a plan (`plan.md`) to judge as a design. Read `kit/taste.md` §0 (the five tests), §1 (conversations), §3 (story), §7 (words and pacing), §8 (rhythm); and `kit/writing-packs.md` (Shapes, Steps) for the mechanics there are to choose from.
 
 ## First, write the day card
 

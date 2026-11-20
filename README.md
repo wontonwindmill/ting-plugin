@@ -1,8 +1,8 @@
 # Ting for Claude Code
 
-Write story packs for Ting, the game where you learn a language by living in a town. Claude plans and writes
-them with you; Ting's service checks every version, plays your drafts on your phone, and publishes them after a
-review.
+Make worlds for Ting, the game where you learn a language by living in a town: your own story, town, people and
+words over one of Ting's settings. Claude plans and writes it with you; Ting's service checks every version, plays
+your drafts on your phone, and publishes them after a review.
 
 In Claude Code:
 

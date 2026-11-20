@@ -1,54 +1,46 @@
 ---
-description: Write a Ting pack's scenes into pack.json from its agreed plan - quests in shapes and pieces, new words, people and things - then check it, have it read, and loop until it's clean, then save it. Use for "write day 1 of my pack", "write the next day", "write my pack from the plan".
+description: Write a Ting world's scenes into pack.json from its agreed plan - quests in shapes and pieces, new words, people and things - then check it, have it read, and loop until it's clean, then save it. Use for "write day 1 of my world", "write the next day", "write my world from the plan".
 argument-hint: [which day]
 ---
 
-# Write a Ting pack
+# Write a Ting world
 
 From the agreed `plan.md` to scenes that play. **Write only what the plan says**: a change of design goes back
 to the plan, and to the person. (With no plan, for something small, write from what the person asked, and say
-what you decided.) Work in the pack's folder (`pack.json`, `plan.md`, `kit/`, `.ting/`); the
+what you decided.) Work in the world's folder (`pack.json`, `plan.md`, `kit/`, `.ting/`); the
 client is `node "${CLAUDE_PLUGIN_ROOT}/scripts/ting-pack.cjs"`.
 
-**A world of its own** (`"kind": "world"`): read `kit/writing-worlds.md` first. It's written like a pack, with what
-a world has that a pack doesn't: its `setup` (name, opening, motives, goal), its `letter`, its `town` (signs on
-the buildings it uses, named spots) and `places` lines. Its words, people and things are all its own (there's no
-world glossary to reuse: every word it uses is in its own `words`, the first hello too). Where this skill points
-at `kit/world/…`, read the setting instead (`kit/setting/README.md`, `kit/setting/setting.json`) and copy the
-idiom of the example worlds (`kit/examples/`). Its first quest is on Day 0, and it has no `after`.
+A world of its own (`"kind": "world"`) is written in Ting's authoring format, with what a world has besides its
+quests: its `setup` (name, opening, motives, goal), its `letter`, its `town` (signs on the buildings it uses, named
+spots) and `places` lines. Its first quest is on Day 0.
 
 ## 1. Read before writing
 
 - **The plan's day**, and the days either side of it.
-- **What comes before:** the world's quests up to the pack's day in `kit/world/quests.md` (each one's goal, and
-  what it tells the player of tomorrow), and what the pack has so far (`check` writes it to `.ting/script.md`).
-- **How it's written:** the example packs (`kit/examples/*.json`): copy their idiom, not the plan's prose. `kit/writing-packs.md` (the pack, shapes, steps, bars), `kit/quests.schema.json`
-  (every step's fields), `kit/taste.md` (what the readers hold it to).
-- **The words:** `kit/world/words.json` and `kit/world/word-pacing.md`.
+- **What comes before:** what the world has so far (`check` writes it to `.ting/script.md`).
+- **How it's written:** `kit/writing-worlds.md`, then the example worlds (`kit/examples/*.json`): copy their idiom,
+  not the plan's prose. `kit/writing-packs.md` (shapes, steps, bars, workstations), `kit/quests.schema.json` (every
+  step's fields), `kit/taste.md` (what the readers hold it to).
+- **The setting:** `kit/setting/README.md` and `kit/setting/setting.json` (its buildings, spots, rooms and sets).
 
-## 2. What a pack can hold
+## 2. What a world holds
 
-All in `pack.json`; the pack adds to the world and never changes what's there:
-- `quests`: every id starts with the pack's id and `_` (`tearoad_xu`). The first goes on the pack's day, after
-  the quest in `after`. Keep `"more": true` on a story quest that shouldn't end its day.
-- `words`: new words, as the world writes them (in 云来 `s`, `pinyin`, `meaning`, `kind`, `hsk`; in 森野
-  `s`, `reading`, `romaji`, `meaning`, `kind`, `jlpt`). A taught word is `"kind": "word"` with its level:
-  on `kit/world/level-list.json` it's level 1 (HSK) or 5 (JLPT); otherwise its level on the same exam's later
-  lists. A new person's name is a word too, `"kind": "name"`, with no level. A word the world already has is
-  used, never added again.
-- `npcs`: new people, shaped like `kit/world/people.json`: copy the entry of someone similar and change it.
-  `look` takes the values the world's people use; `at` is where they stand (a visitor at the desk stands
-  where the world's desk guests do); `from` and `until` are the quests they're around for (usually your own).
-  Their `voice` is one of the voices the world's people already use, of a similar age and sex.
-- `items`: new things to hand over, shaped like `kit/world/things.json`.
+All in `pack.json`:
+- `quests`: every id starts with the world's id and `_` (`nightmarket_arrive`). Give each its `day`. Keep
+  `"more": true` on a story quest that shouldn't end its day.
+- `words`: every word it uses, its own (there's no glossary to borrow from), as the setting's language writes them
+  (Chinese: `s`, `pinyin`, `meaning`, `kind`, `hsk`; Japanese: `s`, `reading`, `romaji`, `meaning`, `kind`, `jlpt`).
+  A taught word is `"kind": "word"` with its level: on `kit/setting/level-list.json` it's level 1 (HSK) or 5
+  (JLPT); otherwise its level on the same exam's later lists. A person's name is a word too, `"kind": "name"`.
+- `npcs`: its people, shaped like the example worlds' (copy one similar and change it): `look`, `at` (where they
+  stand), `voice` (one of the voices the examples use, of a similar age and sex).
+- `items`: things to hand over (the `letter` among them); `props`: its own workstation props, if any.
 
-Your first quest starts by itself once the quest in `after` is done, and someone of yours who only turns up
-for it needs nothing else. Choose shapes from `kit/writing-packs.md`: a visitor at the desk is a `guest`,
-even one who isn't staying (a key, a card or a payment are pieces to add when the visit needs them, not
-requirements).
+Choose shapes from `kit/writing-packs.md`: a visitor at the desk is a `guest`, even one who isn't staying (a key,
+a card or a payment are pieces to add when the visit needs them, not requirements).
 
 For a beat the pieces can't play, use the plan's closest version and say so; never invent fields (the check
-refuses them). The schema is long: the world's quest files show each step kind's fields faster.
+refuses them). The schema is long: the example worlds show each step kind's fields faster.
 
 ## 3. Write it
 

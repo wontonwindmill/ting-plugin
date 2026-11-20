@@ -1,24 +1,22 @@
 ---
-description: Plan a Ting pack before writing it - from a premise and a word list - its words day by day, its arc, each day's guest and project with a problem worth solving, its cast, places and papers, and what Ting can't do yet; then have it read. Writes plan.md, no scenes. Use for "plan my pack", "plan a pack about a night market with these words", or before /ting:write on anything new.
+description: Plan a Ting world before writing it - from a premise and a word list - its words day by day, its arc, each day's guest and project with a problem worth solving, its cast, places and papers, and what Ting can't do yet; then have it read. Writes plan.md, no scenes. Use for "plan my world", "plan a world about a night market with these words", or before /ting:write on anything new.
 argument-hint: [premise, words, how long]
 ---
 
-# Plan a Ting pack
+# Plan a Ting world
 
 A plan is cheap to change and written scenes aren't, so the problems this catches (nothing at stake, the same
 beat twice, a word taught and never used, a mechanic Ting doesn't have) are caught here. **Write no scenes and
-don't touch `pack.json`.** The output is `plan.md` in the pack's folder, agreed with the person.
+don't touch `pack.json`.** The output is `plan.md` in the world's folder, agreed with the person.
 
-Work in the pack's folder (it has `pack.json`, `kit/` and `.ting/`). If there's no pack yet, start one first
+Work in the world's folder (it has `pack.json`, `kit/` and `.ting/`). If there's no world yet, start one first
 (`/ting:new`).
 
-**A world of its own** (`"kind": "world"` in `pack.json`, its kit in `kit/setting/`): read `kit/writing-worlds.md`
-first. It has no world before it: the player knows nothing on Day 0, so the word plan starts from the first hello,
-and every person, place and thread is yours. Where this skill points at `kit/world/…`, read the setting instead
-(`kit/setting/README.md`: its buildings, named spots and rooms; `kit/setting/setting.json`) and the example worlds
-(`kit/examples/`). The plan also says: the town's name and why the player has come (the notice, the letter, the
-host), the long goal, which buildings the story uses and what they're called, and Day 0 (short: arrive, meet the
-host, learn why you're here).
+**A world of its own** (`"kind": "world"` in `pack.json`, its setting's kit in `kit/setting/`): read
+`kit/writing-worlds.md` first. There's no story before it: the player knows nothing on Day 0, so the word plan starts
+from the first hello, and every person, place and thread is yours. The plan also says: the town's name and why the
+player has come (the notice, the letter, the host), the long goal, which buildings the story uses and what they're
+called, and Day 0 (short: arrive, meet the host, learn why you're here).
 
 ## 1. What it's for
 
@@ -29,14 +27,12 @@ say what you assumed at the top of the plan.
 ## 2. Know what's there
 
 Read before planning (the plan is only as good as this):
-- **Where the pack goes:** `pack.json` (`world`, `after`, its day), and in `kit/world/quests.md` the quests of
-  the days before it and the day it's on (each one's goal, and what it says of tomorrow). What does the player
-  know, who have they met, what's going on?
-- **The words:** `kit/world/word-pacing.md` (when each is taught and comes back) and `kit/world/words.json`
-  (every word the world knows: `kind: "word"` ones are taught, the rest are helpers).
-- **The people and places:** `kit/world/people.json` (who exists, where, until when), `kit/world/places.json`,
-  `kit/world/papers.json` (what can be read), `kit/world/world.json` (the sets: where a conversation can
-  happen and what can be handed over).
+- **The setting:** `kit/setting/README.md` (its buildings, named spots and rooms, and what each can be),
+  `kit/setting/setting.json` (the sets: where a conversation can happen and what can be handed over),
+  `kit/setting/glyphs.md` (the pictures things can have).
+- **The words:** `kit/setting/level-list.json` (what counts as a first-level word); every word the world uses is its
+  own, in its `words`, the first hello too.
+- **How a world reads:** the example worlds (`kit/examples/`): their days, their people, how words come in.
 - **What Ting can do:** `kit/writing-packs.md` (shapes and steps, and what each is good for) and
   `kit/quests.schema.json` (every step kind and field).
 - **What works:** `kit/taste.md`, all of it.

@@ -1,20 +1,21 @@
 # Ting for Claude Code
 
-Write story packs for Ting, where players learn a language by living in a town: scenes, guests and errands
-laid over one of Ting's worlds, in its language. Claude plans and writes them with you; Ting's pack service
-checks every version, keeps them all, and records the lines in the world's voices when you publish.
+Make worlds for Ting, where players learn a language by living in a town: your own story from Day 0, with your
+own town, people and words, over one of Ting's settings (a mountain town or a city in China, a village in Japan).
+Claude plans and writes it with you; Ting's service checks every version, keeps them all, and records the lines in
+the town's voices when you publish.
 
 You need Claude Code and Node 18 or later. There's no git and nothing else to install: your pack lives on the
-Ting pack service, and its code opens it in any folder.
+Ting service, and its code opens it in any folder.
 
 ## Start
 
 In an empty folder, in Claude Code:
 
-- `/ting:new` starts a pack: Claude asks which world and what it's about, suggests where it goes in the
-  story, and gives you its code. Keep the code: it opens the pack anywhere, and anyone with it can change it.
-  For now, starting a pack needs an invite code from Ting.
-- `/ting:open <code>` opens a pack you (or someone working with you) started.
+- `/ting:new` starts a world: Claude asks which setting and what it's about, and gives you its code. Keep the
+  code: it opens the world anywhere, and anyone with it can change it. For now, starting one needs an invite code
+  from Ting.
+- `/ting:open <code>` opens a world you (or someone working with you) started.
 
 ## Write
 
@@ -31,11 +32,11 @@ In an empty folder, in Claude Code:
 
 ## The folder
 
-- `pack.json`: the pack. Yours to change.
+- `pack.json`: your world. Yours to change.
 - `plan.md`: the plan, once there is one.
-- `kit/`: the world, to read: its words, people, places, every day as it plays, and how Ting's scenes are
-  written (`kit/README.md`). Refreshed when you open the pack.
-- `.ting/`: where the pack client keeps the code, the version you're on, and the last check and script.
+- `kit/`: the setting, to read: its map, buildings, rooms and props, the example worlds, and how Ting's scenes are
+  written (`kit/README.md`). Refreshed when you open the world.
+- `.ting/`: where the client keeps the code, the version you're on, and the last check and script.
 
-The pack service is `https://studio.tinglanguage.com`; set `TING_SERVER` to use another (Ting's own development runs one at
+The service is `https://studio.tinglanguage.com`; set `TING_SERVER` to use another (Ting's own development runs one at
 `http://localhost:8090`).
