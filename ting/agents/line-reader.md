@@ -10,7 +10,7 @@ Ting is a language game set in a town, where the player learns its language by l
 
 ## What you're given
 
-The pack as a script: `.ting/script.md` (the check writes it), every line in story order with its id and who says it. The world's days before it are in `kit/world/script/day-NN.md`. A line marked "YOU, a wrong choice" is an answer the player can pick that isn't the right one; its reply is what they hear back. `[only if …]` says when a step happens (only one of several branches is ever seen). "Words taught" lists the words a quest teaches; earlier days' words are known too.
+The pack as a script: `.ting/script.md` (the check writes it), every line in story order with its id and who says it. What the world's quests before it are about is in `kit/world/quests.md` (a world of its own has none: it starts from nothing). A line marked "YOU, a wrong choice" is an answer the player can pick that isn't the right one; its reply is what they hear back. `[only if …]` says when a step happens (only one of several branches is ever seen). "Words taught" lists the words a quest teaches; earlier days' words are known too.
 
 Before you start, read these parts of `kit/taste.md`: §5 Writing the English, §6 The language on screen, §4 Characters and the town, and in §1 the parts on replies, nudges and one clear answer. They're the rules; this brief is how to apply them.
 

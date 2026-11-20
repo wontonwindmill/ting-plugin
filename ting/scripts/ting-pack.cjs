@@ -5,8 +5,13 @@
 // service, the pack's code, the version last in step, and the last check and script.
 //
 //   ting-pack worlds                         the worlds a pack can be written for
-//   ting-pack kit <world> [folder]           the world's kit into a folder, to plan before there's a pack
+//   ting-pack kit <world> [folder] [--own] [--map <m>]   the world's kit into a folder, to plan before there's a pack
+//                                            (--own: the setting's kit, for a world of your own over it; --map: on
+//                                            another of the setting's maps, `city`)
 //   ting-pack new <id> --world <w> --after <quest> [--by <name>] [--invite <code>] [folder]   a new pack: its code
+//   ting-pack new <id> --world <w> --own [--map <m>] [--title <t>] [--by <name>] [--invite <code>] [folder]   a world of
+//                                            your own (--map city: on the Chinese setting's city)
+//                                            over that setting, from its own Day 0: its code
 //   ting-pack open <code> [folder]           the pack a code opens, into a folder (here if it's empty, else ./<id>)
 //   ting-pack check [folder]                 check what's here and script it (.ting/script.md), saving nothing
 //   ting-pack push [folder]                  save a new version, checked; refused if there's a newer one to pull
@@ -74,9 +79,9 @@ function take(folder, sync, pack, version) {
 const changedHere = (folder, sync) => !fs.existsSync(packFile(folder)) || hash(fs.readFileSync(packFile(folder), 'utf8')) !== sync.hash
 /** Where a new pack goes when no folder is named: here, if here is empty (or holds only the kit), or else a folder named for it. */
 const folderFor = (folder, id) => folder ?? (fs.readdirSync('.').some(f => !f.startsWith('.') && f !== 'kit') ? id : '.')
-/** The world's kit, written into the folder's kit/ (replacing what was there: it's the service's, not yours). */
-async function writeKit(server, world, folder) {
-  const { files } = await call(server, 'GET', `/api/worlds/${encodeURIComponent(world)}/kit`)
+/** The world's kit (or, `own`, the setting's, for a world of your own), written into the folder's kit/ (replacing what was there: it's the service's, not yours). */
+async function writeKit(server, world, folder, own = false, map) {
+  const { files } = await call(server, 'GET', `/api/worlds/${encodeURIComponent(world)}/kit${own ? `?for=world${map ? `&map=${encodeURIComponent(map)}` : ''}` : ''}`)
   const dir = path.join(folder, 'kit')
   fs.rmSync(dir, { recursive: true, force: true })
   for (const [name, text] of Object.entries(files)) {
@@ -95,27 +100,30 @@ const listed = check => [said(check), ...check.problems.map(p => `  ✗ ${p}`), 
 const commands = {
   async worlds({ server = DEFAULT_SERVER } = {}) {
     const worlds = await call(server, 'GET', '/api/worlds')
-    return { ok: true, worlds, say: worlds.map(w => `${w.id}: ${w.name}, ${w.language}`).join('\n') }
+    return { ok: true, worlds, say: worlds.map(w => [`${w.id}: ${w.name}, ${w.language}`, ...(w.maps ?? []).map(m => `  --map ${m.id}: ${m.setting}`)].join('\n')).join('\n') }
   },
 
-  async kit(world, folder = '.', { server = DEFAULT_SERVER } = {}) {
+  async kit(world, folder = '.', { server = DEFAULT_SERVER, own = false, map } = {}) {
     if (!world) {
       const sync = readSync(folder)
-      world = readPack(folder).pack.world
+      const { pack } = readPack(folder)
+      world = pack.world
+      own = pack.kind === 'world'
+      map = pack.map
       server = sync.server
     }
-    const n = await writeKit(server, world, folder)
+    const n = await writeKit(server, world, folder, own, map)
     return { ok: true, world, files: n, say: `Wrote the kit for ${world} into ${path.join(folder, 'kit')} (${n} files; start with kit/README.md)` }
   },
 
-  async new(id, { world, after, by, invite, folder, server = DEFAULT_SERVER } = {}) {
-    if (!id || !world || !after) throw new Problem('Usage: new <id> --world <world> --after <quest id> [--invite <code>] [--by <name, as credited>] [folder]')
+  async new(id, { world, after, by, invite, own = false, map, title, folder, server = DEFAULT_SERVER } = {}) {
+    if (!id || !world || (!after && !own)) throw new Problem('Usage: new <id> --world <world> (--after <quest id> | --own) [--invite <code>] [--by <name, as credited>] [folder]')
     folder = folderFor(folder, id)
     if (fs.existsSync(packFile(folder))) throw new Problem(`${folder} already has a pack.json: start the new pack in another folder`)
-    const made = await call(server, 'POST', '/api/packs/new', { body: { id, world, after, by, invite } })
-    const pack = await call(server, 'GET', `/packs/${made.id}/pack.json?v=${made.version}`)
+    const made = await call(server, 'POST', '/api/packs/new', { body: own ? { id, world, kind: 'world', map, title, by, invite } : { id, world, after, by, invite } })
+    const pack = await call(server, 'GET', `/packs/${made.id}/pack.json?v=${made.version}`, { code: made.key })
     take(folder, { server, id: made.id, code: made.key }, pack, made.version)
-    const files = await writeKit(server, world, folder)
+    const files = await writeKit(server, world, folder, own, map)
     return { ok: true, id: made.id, code: made.key, folder, version: made.version, kit: files,
       say: `Started ${made.id} in ${folder}, with the kit for ${world} in ${path.join(folder, 'kit')}.\nIts code is ${made.key}: it opens the pack anywhere, and anyone with it can change it, so keep it to yourself.` }
   },
@@ -138,10 +146,10 @@ const commands = {
       if (sync.id !== id) throw new Problem(`${folder} holds ${sync.id}, not ${id}: open it into another folder`)
       if (changedHere(folder, sync)) throw new Problem(`${folder} has changes that aren't on the service: push them, or pull --force`)
     } else if (fs.existsSync(packFile(folder))) throw new Problem(`${folder} already has a pack.json: open it into another folder`)
-    const info = await call(server, 'GET', `/api/packs/${id}`)
-    const pack = await call(server, 'GET', `/packs/${id}/pack.json?v=${info.latest}`)
+    const info = await call(server, 'GET', `/api/packs/${id}`, { code })
+    const pack = await call(server, 'GET', `/packs/${id}/pack.json?v=${info.latest}`, { code })
     take(folder, { server, id, code }, pack, info.latest)
-    const files = kit ? await writeKit(server, pack.world, folder) : 0
+    const files = kit ? await writeKit(server, pack.world, folder, pack.kind === 'world', pack.map) : 0
     return { ok: true, id, folder, version: info.latest, title: pack.title, world: pack.world, kit: files,
       say: `Opened ${pack.title} (${id}, version ${info.latest}) into ${folder}${files ? `, with the kit for ${pack.world} in ${path.join(folder, 'kit')}` : ''}` }
   },
@@ -160,8 +168,8 @@ const commands = {
 
   async status(folder) {
     const sync = readSync(folder)
-    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`)
-    const check = await call(sync.server, 'GET', `/api/packs/${sync.id}/check?v=${info.latest}`)
+    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: sync.code })
+    const check = await call(sync.server, 'GET', `/api/packs/${sync.id}/check?v=${info.latest}`, { code: sync.code })
     const here = changedHere(folder, sync), there = info.latest > sync.version
     return { ok: true, id: sync.id, version: sync.version, latest: info.latest, submitted: info.submitted ?? null, published: info.published, changedHere: here, newerThere: there, check, recording: info.recording ?? null,
       say: [`${sync.id}: version ${sync.version} here, ${info.latest} on the service${info.submitted ? `, ${info.submitted} sent for review` : ''}${info.published ? `, ${info.published} published` : ''}.`,
@@ -173,7 +181,7 @@ const commands = {
 
   async pull(folder, { force = false } = {}) {
     const sync = readSync(folder)
-    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`)
+    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: sync.code })
     let kept
     if (changedHere(folder, sync)) {
       if (!force) throw new Problem(`${folder} has changes that aren't on the service: push them first, or pull --force (which keeps yours as pack.mine.json)`)
@@ -181,7 +189,7 @@ const commands = {
       fs.copyFileSync(packFile(folder), kept)
     }
     if (info.latest === sync.version && !kept) return { ok: true, version: sync.version, say: `Already in step (version ${sync.version})` }
-    const pack = await call(sync.server, 'GET', `/packs/${sync.id}/pack.json?v=${info.latest}`)
+    const pack = await call(sync.server, 'GET', `/packs/${sync.id}/pack.json?v=${info.latest}`, { code: sync.code })
     take(folder, sync, pack, info.latest)
     return { ok: true, version: info.latest, kept, say: `Pulled version ${info.latest}${kept ? `; your changes are in ${kept}` : ''}` }
   },
@@ -227,7 +235,8 @@ const commands = {
   async play(folder) {
     const sync = readSync(folder)
     const site = sync.server.replace(/\/$/, '')
-    const url = `${site}/studio/${sync.id}`
+    // (Its code goes after the #: the browser keeps it for this pack and never sends it; drafts are their makers'.)
+    const url = `${site}/studio/${sync.id}#code=${sync.code}`
     return { ok: true, url, game: `${site}/play/${sync.id}`,
       say: `${url}\nYour latest saved version in Ting Studio, playing beside it (Chrome, Edge or Safari 26). Changes here show once they're saved; reload to see them.` }
   },
@@ -244,12 +253,12 @@ if (require.main === module) {
   const args = process.argv.slice(2)
   const json = args.includes('--json'), force = args.includes('--force')
   const opt = name => { const i = args.indexOf(name); if (i < 0) return undefined; const v = args[i + 1]; args.splice(i, 2); return v }
-  const world = opt('--world'), after = opt('--after'), by = opt('--by'), invite = opt('--invite')
+  const world = opt('--world'), after = opt('--after'), by = opt('--by'), invite = opt('--invite'), title = opt('--title'), map = opt('--map'), own = args.includes('--own')
   const [verb, ...rest] = args.filter(a => !a.startsWith('--'))
   const run = {
     worlds: () => commands.worlds(),
-    kit: () => commands.kit(rest[0], rest[1] ?? '.'),
-    new: () => commands.new(rest[0], { world, after, by, invite, folder: rest[1] }),
+    kit: () => commands.kit(rest[0], rest[1] ?? '.', { own, map }),
+    new: () => commands.new(rest[0], { world, after, by, invite, own, map, title, folder: rest[1] }),
     upload: () => commands.upload(rest[0] ?? '.', { invite }),
     submit: () => commands.submit(rest[0] ?? '.'),
     open: () => commands.open(rest[0], rest[1]),

@@ -12,6 +12,14 @@ don't touch `pack.json`.** The output is `plan.md` in the pack's folder, agreed 
 Work in the pack's folder (it has `pack.json`, `kit/` and `.ting/`). If there's no pack yet, start one first
 (`/ting:new`).
 
+**A world of its own** (`"kind": "world"` in `pack.json`, its kit in `kit/setting/`): read `kit/writing-worlds.md`
+first. It has no world before it: the player knows nothing on Day 0, so the word plan starts from the first hello,
+and every person, place and thread is yours. Where this skill points at `kit/world/…`, read the setting instead
+(`kit/setting/README.md`: its buildings, named spots and rooms; `kit/setting/setting.json`) and the example worlds
+(`kit/examples/`). The plan also says: the town's name and why the player has come (the notice, the letter, the
+host), the long goal, which buildings the story uses and what they're called, and Day 0 (short: arrive, meet the
+host, learn why you're here).
+
 ## 1. What it's for
 
 From the person: the premise, the words they want taught (or the topic, and you propose words), and roughly
@@ -21,9 +29,9 @@ say what you assumed at the top of the plan.
 ## 2. Know what's there
 
 Read before planning (the plan is only as good as this):
-- **Where the pack goes:** `pack.json` (`world`, `after`, its day), `kit/world/quests.md`, and the scripts of
-  the two days before it and the day it's on (`kit/world/script/day-NN.md`). What does the player know, who's
-  in town, what's going on?
+- **Where the pack goes:** `pack.json` (`world`, `after`, its day), and in `kit/world/quests.md` the quests of
+  the days before it and the day it's on (each one's goal, and what it says of tomorrow). What does the player
+  know, who have they met, what's going on?
 - **The words:** `kit/world/word-pacing.md` (when each is taught and comes back) and `kit/world/words.json`
   (every word the world knows: `kind: "word"` ones are taught, the rest are helpers).
 - **The people and places:** `kit/world/people.json` (who exists, where, until when), `kit/world/places.json`,

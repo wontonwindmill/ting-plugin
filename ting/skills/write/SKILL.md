@@ -10,13 +10,19 @@ to the plan, and to the person. (With no plan, for something small, write from w
 what you decided.) Work in the pack's folder (`pack.json`, `plan.md`, `kit/`, `.ting/`); the
 client is `node "${CLAUDE_PLUGIN_ROOT}/scripts/ting-pack.cjs"`.
 
+**A world of its own** (`"kind": "world"`): read `kit/writing-worlds.md` first. It's written like a pack, with what
+a world has that a pack doesn't: its `setup` (name, opening, motives, goal), its `letter`, its `town` (signs on
+the buildings it uses, named spots) and `places` lines. Its words, people and things are all its own (there's no
+world glossary to reuse: every word it uses is in its own `words`, the first hello too). Where this skill points
+at `kit/world/…`, read the setting instead (`kit/setting/README.md`, `kit/setting/setting.json`) and copy the
+idiom of the example worlds (`kit/examples/`). Its first quest is on Day 0, and it has no `after`.
+
 ## 1. Read before writing
 
 - **The plan's day**, and the days either side of it.
-- **What comes before, as it plays:** the two days before the pack's day in `kit/world/script/day-NN.md`, and
-  what the pack has so far (`check` writes it to `.ting/script.md`).
-- **How it's written:** the world's quest files for those days (`kit/world/quests/day-NN.json`): copy their
-  idiom, not the plan's prose. `kit/writing-packs.md` (the pack, shapes, steps, bars), `kit/quests.schema.json`
+- **What comes before:** the world's quests up to the pack's day in `kit/world/quests.md` (each one's goal, and
+  what it tells the player of tomorrow), and what the pack has so far (`check` writes it to `.ting/script.md`).
+- **How it's written:** the example packs (`kit/examples/*.json`): copy their idiom, not the plan's prose. `kit/writing-packs.md` (the pack, shapes, steps, bars), `kit/quests.schema.json`
   (every step's fields), `kit/taste.md` (what the readers hold it to).
 - **The words:** `kit/world/words.json` and `kit/world/word-pacing.md`.
 

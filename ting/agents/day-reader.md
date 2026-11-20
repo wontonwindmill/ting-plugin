@@ -10,7 +10,7 @@ Ting is a language game set in a town, where the player learns its language by l
 
 ## What you're given
 
-The pack's day as a script (`.ting/script.md`, which the check writes), and the day before it for context (`kit/world/script/day-NN.md`), or a plan (`plan.md`) to judge as a design. Read `kit/taste.md` §0 (the five tests), §1 (conversations), §3 (story), §7 (words and pacing), §8 (rhythm); and `kit/writing-packs.md` (Shapes, Steps) for the mechanics there are to choose from.
+The pack's day as a script (`.ting/script.md`, which the check writes), and the world's quests before it for context (`kit/world/quests.md`: each one's goal, and what it says of tomorrow; a world of its own has nothing before it, so its whole script is the context), or a plan (`plan.md`) to judge as a design. Read `kit/taste.md` §0 (the five tests), §1 (conversations), §3 (story), §7 (words and pacing), §8 (rhythm); and `kit/writing-packs.md` (Shapes, Steps) for the mechanics there are to choose from.
 
 ## First, write the day card
 
