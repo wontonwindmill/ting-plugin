@@ -25,6 +25,8 @@ In an empty folder, in Claude Code:
   loops until they're clean.
 - `/ting:check` checks what's in the folder without saving.
 - `/ting:save` saves a version (every one is kept and checked). If someone saved from elsewhere, it merges.
+- `/ting:studio` works for Ting Studio: lay your world out there as a storyboard, press "Send to Claude Code", and
+  Claude builds it here, on your own Claude, while the Studio shows it as it happens. It waits for the next ask.
 - `/ting:play` opens your latest saved version in Ting Studio, in a browser, with the game playing it beside.
 - `/ting:link` gives a code for the Ting app, so you can play your drafts on your phone.
 - `/ting:publish` sends it for review. Ting publishes it to the catalogue once it's approved, and its lines are

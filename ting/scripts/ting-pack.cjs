@@ -22,6 +22,10 @@
 //   ting-pack play [folder]                  the latest saved version in Ting Studio, playing beside it in a browser
 //   ting-pack upload [folder] [--invite c]   put a pack that's only here on the service: prints its code
 //   ting-pack code [folder]                  the code, to open the pack somewhere else
+//   ting-pack studio [folder] [--wait <s>]   wait for what the Studio asks of this world (up to 9 minutes; run again to
+//                                            keep waiting), take its latest version, and say what to do
+//   ting-pack progress <pct> <what's happening>   how the request is going, shown in the Studio as it happens
+//   ting-pack done <what was done> [--failed]     the request is done (or couldn't be)
 //   add --json for one JSON object; the service is TING_SERVER (https://studio.tinglanguage.com) unless the folder says
 const fs = require('node:fs')
 const path = require('node:path')
@@ -96,6 +100,20 @@ async function writeKit(server, world, folder, own = false, map) {
   }
   return Object.keys(files).length
 }
+/** The request being worked on, from the Studio (`studio` keeps it). */
+const requestFile = folder => path.join(folder, '.ting', 'request.json')
+function readRequest(folder) {
+  if (!fs.existsSync(requestFile(folder))) throw new Problem('There\'s no request being worked on here: run studio to wait for one')
+  return JSON.parse(fs.readFileSync(requestFile(folder), 'utf8'))
+}
+/** What each kind of request asks, in a line. */
+const ASKS = {
+  build: () => 'build the storyboard: write the scenes its panels describe (`storyboard` in pack.json), and say which scene each panel became.',
+  propose: r => `propose a storyboard: fill in its days and panels from its description${r.note ? ` (and: "${r.note}")` : ''}, writing no scenes.`,
+  panel: r => `do panel ${r.panel} again: "${r.note}".`,
+  ask: r => `"${r.note}"`,
+}
+
 /** A check, in short, for people. */
 const said = check => (check.ok ? 'Ready to play.' : `Not ready: ${check.problems.length} problem${check.problems.length === 1 ? '' : 's'}`)
 const listed = check => [said(check), ...check.problems.map(p => `  ✗ ${p}`), ...(check.notes ?? []).map(n => `  · ${n}`),
@@ -248,6 +266,43 @@ const commands = {
       say: `${url}\nYour latest saved version in Ting Studio, playing beside it (Chrome, Edge or Safari 26). Changes here show once they're saved; reload to see them.` }
   },
 
+  /**
+   * Waits for what the Studio asks of this world (`wait` seconds at most), then takes its latest version and says
+   * what to do. The request is kept in .ting/request.json until it's done.
+   */
+  async studio(folder, { wait = 540 } = {}) {
+    const sync = readSync(folder)
+    if (changedHere(folder, sync)) throw new Problem("There are changes here that aren't saved yet: push them (or pull --force), then wait again")
+    const until = Date.now() + wait * 1000
+    let request = null
+    while (!request && Date.now() < until) {
+      const left = Math.max(1, Math.ceil((until - Date.now()) / 1000))
+      ;({ request } = await call(sync.server, 'GET', `/api/packs/${sync.id}/requests/next?wait=${Math.min(50, left)}`, { code: sync.code }))
+    }
+    if (!request) return { ok: true, waiting: true, say: 'Nothing asked in the Studio yet. Run studio again to keep waiting.' }
+    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: sync.code })
+    if (info.latest !== sync.version) take(folder, sync, await call(sync.server, 'GET', `/packs/${sync.id}/pack.json?v=${info.latest}`, { code: sync.code }), info.latest)
+    fs.writeFileSync(requestFile(folder), JSON.stringify(request, null, 2) + '\n')
+    return { ok: true, request, version: info.latest, say: [`The Studio asks (request ${request.id}, on version ${info.latest}): ${ASKS[request.kind](request)}`,
+      'Say how it\'s going as you work: progress <0-100> <what you\'re doing>. Save versions as you go (push). When it\'s done: done <one line on what you did>.'].join('\n') }
+  },
+
+  /** How the request is going (`pct`, 0 to 100, and a line on what's happening): the Studio shows it. */
+  async progress(pct, text, folder = '.') {
+    const sync = readSync(folder), request = readRequest(folder)
+    await call(sync.server, 'POST', `/api/requests/${request.id}/progress`, { code: sync.code, body: { pct: Number(pct), text } })
+    return { ok: true, say: `${pct}%: ${text}` }
+  },
+
+  /** The request is done (or `failed`), with a line on what was done. */
+  async done(summary, folder = '.', { failed = false } = {}) {
+    const sync = readSync(folder), request = readRequest(folder)
+    if (changedHere(folder, sync)) throw new Problem("There are changes here that aren't saved yet: push them first, so the Studio has them")
+    await call(sync.server, 'POST', `/api/requests/${request.id}/done`, { code: sync.code, body: failed ? { ok: false, error: summary } : { ok: true, summary } })
+    fs.rmSync(requestFile(folder))
+    return { ok: true, say: `Told the Studio: ${failed ? 'it stopped' : 'done'}${summary ? ` (${summary})` : ''}. Run studio to wait for the next request.` }
+  },
+
   async code(folder) {
     const sync = readSync(folder)
     return { ok: true, code: sync.code, say: sync.code }
@@ -261,6 +316,7 @@ if (require.main === module) {
   const json = args.includes('--json'), force = args.includes('--force')
   const opt = name => { const i = args.indexOf(name); if (i < 0) return undefined; const v = args[i + 1]; args.splice(i, 2); return v }
   // (A world of your own, and a setting's kit, unless Ting asks for its own story's: `--after`, `--story`. `--own` is the default.)
+  const wait = opt('--wait'), folderOpt = opt('--folder')
   const world = opt('--world'), after = opt('--after'), by = opt('--by'), invite = opt('--invite'), title = opt('--title'), map = opt('--map'), story = args.includes('--story')
   const [verb, ...rest] = args.filter(a => !a.startsWith('--'))
   const run = {
@@ -278,6 +334,9 @@ if (require.main === module) {
     link: () => commands.link(rest[0] ?? '.'),
     play: () => commands.play(rest[0] ?? '.'),
     code: () => commands.code(rest[0] ?? '.'),
+    studio: () => commands.studio(rest[0] ?? '.', { wait: wait ? Number(wait) : undefined }),
+    progress: () => commands.progress(rest[0], rest.slice(1).join(' '), folderOpt ?? '.'),
+    done: () => commands.done(rest.join(' '), folderOpt ?? '.', { failed: args.includes('--failed') }),
   }[verb]
   if (!run) {
     const lines = fs.readFileSync(__filename, 'utf8').split('\n').slice(1)
