@@ -67,6 +67,11 @@ alone: nothing on any other day changes.
   `level`; a new day carries on from the words the days before it taught (bring them back, then teach new ones).
   Check, then push, after each day, with a progress line. Then the readers go over the day: fold in what's
   clearly right (a wrong word, a clumsy line), and send each thing that's the person's call with `note`.
+- **Ting's own story** (`"original": true` in `pack.json`: 云来's, or 森野's, shared by Ting's team) is a world
+  like any other, with two differences. Its scenes keep the ids they have (players' saves and the recordings go by
+  them): name new ones the way the story does (`q_<name>` for a story, `g_<name>` for a guest, `m_day<N>` for a
+  morning), never with the world's id. And players are part-way through it: change a day they may have played only
+  when the request is about it, and never take a scene away (rename nothing; a release that drops one is refused).
 - **A world just started in the Studio** has placeholders: one arrival scene (`<id>_arrive`, a line from `host`),
   and a town called 小镇 in its `setup`. Make them the board's: the town's name, its people and its Day 0, from the
   brief and the board (`kit/writing-worlds.md` says what a world's `setup` needs).
