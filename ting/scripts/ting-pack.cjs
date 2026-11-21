@@ -31,6 +31,9 @@
 //                                            yours (each opened into a folder of its own). Then say what to do
 //   ting-pack progress <pct> <what's happening>   how the request is going, shown in the Studio as it happens
 //   ting-pack note <what was found> [--panel <id>]   a reader's finding, for the person to decide on in the Studio
+//   ting-pack brief [folder] [--file <f>]    what you'll change (a JSON file: {summary, items: [{text, scenes, adds?}]},
+//                                            the world's .ting/brief.json by default), for the person's OK in the Studio; waits
+//                                            for it (up to 15 minutes; run brief again to keep waiting), then says what's approved
 //   ting-pack done <what was done> [--failed]     the request is done (or couldn't be)
 //   add --json for one JSON object; the service is TING_SERVER (https://studio.tinglanguage.com) unless the folder says
 const fs = require('node:fs')
@@ -168,7 +171,7 @@ async function studioForAccount(folder, { wait = 540 } = {}) {
   fs.writeFileSync(requestFile(where), JSON.stringify(request, null, 2) + '\n')
   fs.mkdirSync(path.join(folder, '.ting'), { recursive: true })
   fs.writeFileSync(currentFile(folder), JSON.stringify({ folder: request.pack }) + '\n')
-  return { ok: true, request, folder: where, version: opened.version, say: [`The Studio asks, for ${opened.title} (request ${request.id}, version ${opened.version}, in ${where}): ${ASKS[request.kind](request)}`,
+  return { ok: true, request, folder: where, version: opened.version, say: [`The Studio asks, for ${opened.title} (request ${request.id}, version ${opened.version}, in ${where}): ${ASKS[request.kind](request)}${FIRST(request)}`,
     `Work in ${where}. Say how it's going: progress <0-100> <what you're doing>. Save versions as you go (push ${where}). When it's done: done <one line on what you did>.`].join('\n') }
 }
 function readRequest(folder) {
@@ -178,16 +181,20 @@ function readRequest(folder) {
 /** What each kind of request asks, in a line. */
 const ASKS = {
   build: r => (r.day != null
-    ? `build Day ${r.day}: write the scenes its panels describe (only the panels with no scene yet: every other day stays as it is), check it, have the readers go over it, fold in what's clearly right, and send what's left with note.`
-    : 'build the storyboard: write the scenes its panels describe (only the panels with no scene yet), and say which scene each panel became.'),
+    ? `write Day ${r.day}: the scenes its panels describe (only the panels with no scene yet: every other day stays as it is), check it, have the readers go over it, fold in what's clearly right in what you just wrote, and send what's left with note.`
+    : 'write the storyboard: the scenes its panels describe (only the panels with no scene yet), and say which scene each panel became.'),
   propose: r => (r.day != null
-    ? `propose Day ${r.day}: fill in what that day is about and its panels, around the person's own, writing no scenes${r.note ? ` (and: "${r.note}")` : ''}.`
-    : `propose a storyboard: fill in its days and panels from its description${r.note ? ` (and: "${r.note}")` : ''}, writing no scenes.`),
+    ? `fill in Day ${r.day}: what that day is about and its panels, around the person's own, writing no scenes${r.note ? ` (and: "${r.note}")` : ''}.`
+    : `fill in the storyboard: its days and panels from its description, its level and its target${r.note ? ` (and: "${r.note}")` : ''}, writing no scenes.`),
   panel: r => `do panel ${r.panel} again: "${r.note}".`,
   ask: r => `"${r.note}"`,
-  read: r => `read Day ${r.day}: check it, and have the readers go over it (its lines, and the day as a whole). Change nothing: send each finding with note (--panel <id> when it's about one panel), for the person to decide on.`,
-  revise: r => `revise Day ${r.day}: "${r.note}". Change only that day, and nothing locked; check it, have it read, and save.`,
+  read: r => (r.day != null
+    ? `read Day ${r.day}: check it, and have the readers go over it (its lines, and the day as a whole). Change nothing: send each finding with note (--panel <id> when it's about one panel), for the person to decide on.`
+    : 'read the whole world: check it, have the day reader go over each day, and read across the days yourself for what doesn\'t hold together (a thread dropped, a person out of character, words that never come back). Change nothing: send each finding with note (--panel <id> when it\'s about one panel).'),
+  revise: r => `${/^rebuild/i.test(r.note ?? '') ? `rebuild Day ${r.day} as one pass` : `change Day ${r.day}`}: "${r.note}". Only that day, keeping what the person keeps; check it, have it read, and save.`,
 }
+/** What every request that changes what's built adds: brief the person first, when the world says so. */
+const FIRST = r => (r.askFirst ? '\nBrief the person first: before changing anything already built, write what you\'ll change to .ting/brief.json and run brief (see the studio skill). Change only what they approve.' : '')
 
 /** A check, in short, for people. */
 const said = check => (check.ok ? 'Ready to play.' : `Not ready: ${check.problems.length} problem${check.problems.length === 1 ? '' : 's'}`)
@@ -301,7 +308,10 @@ const commands = {
     const sync = readSync(folder)
     const { pack, text } = readPack(folder)
     if (!changedHere(folder, sync)) return { ok: true, version: sync.version, unchanged: true, say: `Nothing to push: version ${sync.version} is what's here` }
-    const saved = await call(sync.server, 'PUT', `/api/packs/${sync.id}`, { code: authOf(sync), body: { pack, base: sync.version } })
+    // (Why, for the world's history: what the Studio asked, when it's that.)
+    const request = fs.existsSync(requestFile(folder)) ? JSON.parse(fs.readFileSync(requestFile(folder), 'utf8')) : null
+    const why = request ? `${{ build: 'Writing', propose: 'Filling in the board', panel: 'A panel again', ask: 'Your ask', read: 'Reading', revise: 'Changing' }[request.kind] ?? request.kind}${request.day != null ? ` ${request.day === 0 ? 'Arrival' : `Day ${request.day}`}` : ''}` : 'Claude Code'
+    const saved = await call(sync.server, 'PUT', `/api/packs/${sync.id}`, { code: authOf(sync), body: { pack, base: sync.version, why } })
     writeSync(folder, { ...sync, version: saved.version, hash: hash(text) })
     return { ok: saved.check.ok, version: saved.version, check: saved.check, say: `Saved version ${saved.version}. ${listed(saved.check)}` }
   },
@@ -363,7 +373,7 @@ const commands = {
     const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: authOf(sync) })
     if (info.latest !== sync.version) take(folder, sync, await call(sync.server, 'GET', `/packs/${sync.id}/pack.json?v=${info.latest}`, { code: authOf(sync) }), info.latest)
     fs.writeFileSync(requestFile(folder), JSON.stringify(request, null, 2) + '\n')
-    return { ok: true, request, version: info.latest, say: [`The Studio asks (request ${request.id}, on version ${info.latest}): ${ASKS[request.kind](request)}`,
+    return { ok: true, request, version: info.latest, say: [`The Studio asks (request ${request.id}, on version ${info.latest}): ${ASKS[request.kind](request)}${FIRST(request)}`,
       'Say how it\'s going as you work: progress <0-100> <what you\'re doing>. Save versions as you go (push). When it\'s done: done <one line on what you did>.'].join('\n') }
   },
 
@@ -384,6 +394,34 @@ const commands = {
     return { ok: true, say: `Noted for the Studio${panel ? ` (panel ${panel})` : ''}: ${text}` }
   },
 
+  /**
+   * What Claude will change (`file`: {summary, items: [{text, scenes: [quest ids], adds?, panel?, day?}]}), for the
+   * person to agree to, item by item, in the Studio; then waits for their answer, and says what's approved (and only
+   * that may change). Run again while they haven't answered (with no file once it's sent): it waits again.
+   */
+  async brief(file, folder = '.') {
+    folder = workingIn(folder)
+    const sync = readSync(folder), request = readRequest(folder)
+    let r = (await call(sync.server, 'GET', `/api/requests/${request.id}`, { code: authOf(sync) })).request
+    if (r.status === 'working' && !r.approved) {
+      const at = file ? path.resolve(file) : path.join(folder, '.ting', 'brief.json')
+      if (!fs.existsSync(at)) throw new Problem(`Write the brief first: ${path.relative('.', at) || at}, as {"summary": "…", "items": [{"text": "what will change, and what stays", "scenes": ["<quest id>"], "adds": false}]}`)
+      let body
+      try { body = JSON.parse(fs.readFileSync(at, 'utf8')) } catch (e) { throw new Problem(`The brief isn't JSON: ${e.message}`) }
+      r = (await call(sync.server, 'POST', `/api/requests/${request.id}/brief`, { code: authOf(sync), body })).request
+    }
+    const until = Date.now() + 15 * 60e3
+    while (r.status === 'briefed' && Date.now() < until) r = (await call(sync.server, 'GET', `/api/requests/${request.id}?wait=50`, { code: authOf(sync) })).request
+    if (r.status === 'briefed') return { ok: true, waiting: true, say: "They haven't answered yet. Run brief again to keep waiting (it's sent: no need to send it again)." }
+    if (r.status === 'cancelled') {
+      fs.rmSync(requestFile(folder), { force: true })
+      return { ok: true, declined: true, say: 'They said not this time: the request is over, and nothing changes. Run studio again for the next one.' }
+    }
+    const yes = (r.brief?.items ?? []).filter(i => r.approved?.includes(i.id)), no = (r.brief?.items ?? []).filter(i => !r.approved?.includes(i.id))
+    return { ok: true, approved: yes, say: [`Approved: do exactly these, and nothing else (the service refuses changes to any other scene):`, ...yes.map(i => `  ✓ ${i.text}${i.scenes.length ? ` [${i.scenes.join(', ')}]` : ''}${i.adds ? ' (adds scenes)' : ''}`),
+      ...(no.length ? ['Not approved: leave these as they are:', ...no.map(i => `  ✗ ${i.text}`)] : []), ...(r.answer ? [`Their note: "${r.answer}"`] : [])].join('\n') }
+  },
+
   /** The request is done (or `failed`), with a line on what was done. */
   async done(summary, folder = '.', { failed = false } = {}) {
     const root = folder
@@ -393,7 +431,7 @@ const commands = {
     await call(sync.server, 'POST', `/api/requests/${request.id}/done`, { code: authOf(sync), body: failed ? { ok: false, error: summary } : { ok: true, summary } })
     fs.rmSync(requestFile(folder))
     fs.rmSync(currentFile(root), { force: true })
-    return { ok: true, say: `Told the Studio: ${failed ? 'it stopped' : 'done'}${summary ? ` (${summary})` : ''}. Run studio to wait for the next request.` }
+    return { ok: true, say: `Told the Studio: ${failed ? 'it stopped' : 'done'}${summary ? ` (${summary})` : ''}. Now run studio again, straight away, to take the next request: they may already have sent one.` }
   },
 
   /**
@@ -446,7 +484,7 @@ if (require.main === module) {
   const json = args.includes('--json'), force = args.includes('--force')
   const opt = name => { const i = args.indexOf(name); if (i < 0) return undefined; const v = args[i + 1]; args.splice(i, 2); return v }
   // (A world of your own, and a setting's kit, unless Ting asks for its own story's: `--after`, `--story`. `--own` is the default.)
-  const wait = opt('--wait'), folderOpt = opt('--folder'), panelOpt = opt('--panel')
+  const wait = opt('--wait'), folderOpt = opt('--folder'), panelOpt = opt('--panel'), fileOpt = opt('--file')
   const world = opt('--world'), after = opt('--after'), by = opt('--by'), invite = opt('--invite'), title = opt('--title'), map = opt('--map'), story = args.includes('--story')
   const [verb, ...rest] = args.filter(a => !a.startsWith('--'))
   const run = {
@@ -471,6 +509,7 @@ if (require.main === module) {
     progress: () => commands.progress(rest[0], rest.slice(1).join(' '), folderOpt ?? '.'),
     done: () => commands.done(rest.join(' '), folderOpt ?? '.', { failed: args.includes('--failed') }),
     note: () => commands.note(rest.join(' '), folderOpt ?? '.', { panel: panelOpt }),
+    brief: () => commands.brief(fileOpt, rest[0] ?? folderOpt ?? '.'),
   }[verb]
   if (!run) {
     const lines = fs.readFileSync(__filename, 'utf8').split('\n').slice(1)
