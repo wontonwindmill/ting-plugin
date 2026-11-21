@@ -11,7 +11,8 @@
 //                                            your own over that setting, from its own Day 0 (--map city: on the
 //                                            Chinese setting's city): its code
 //   (Ting's own, with TING_ADMIN_KEY: `kit --story` and `new --after <quest>`, scenes laid into a town's own story.)
-//   ting-pack open <code> [folder]           the pack a code opens, into a folder (here if it's empty, else ./<id>)
+//   ting-pack open <id or key> [folder]      a world into a folder: by its id (connected: login), or by its key (here if
+//                                            it's empty, else ./<id>)
 //   ting-pack check [folder]                 check what's here and script it (.ting/script.md), saving nothing
 //   ting-pack push [folder]                  save a new version, checked; refused if there's a newer one to pull
 //   ting-pack pull [folder] [--force]        take the latest version (--force: even over changes here, kept aside)
@@ -22,12 +23,17 @@
 //   ting-pack play [folder]                  the latest saved version in Ting Studio, playing beside it in a browser
 //   ting-pack upload [folder] [--invite c]   put a pack that's only here on the service: prints its code
 //   ting-pack code [folder]                  the code, to open the pack somewhere else
-//   ting-pack studio [folder] [--wait <s>]   wait for what the Studio asks of this world (up to 9 minutes; run again to
-//                                            keep waiting), take its latest version, and say what to do
+//   ting-pack login [--wait]                 connect Claude Code to your Ting account: a code to allow in the Studio;
+//                                            --wait waits for you to allow it. Then worlds open by their id, no key
+//   ting-pack logout                         disconnect it here
+//   ting-pack studio [folder] [--wait <s>]   wait for what the Studio asks (up to 9 minutes; run again to keep waiting):
+//                                            in a world's folder, of that world; anywhere else, connected, of any of
+//                                            yours (each opened into a folder of its own). Then say what to do
 //   ting-pack progress <pct> <what's happening>   how the request is going, shown in the Studio as it happens
 //   ting-pack done <what was done> [--failed]     the request is done (or couldn't be)
 //   add --json for one JSON object; the service is TING_SERVER (https://studio.tinglanguage.com) unless the folder says
 const fs = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
 const crypto = require('node:crypto')
 
@@ -37,6 +43,24 @@ const packFile = folder => path.join(folder, 'pack.json')
 const hash = text => crypto.createHash('sha256').update(text).digest('hex')
 /** The pack as it's written to a folder: what the hash in sync.json is of. */
 const asText = pack => JSON.stringify(pack, null, 2) + '\n'
+
+/**
+ * Claude Code connected to a Ting account (`login`): a token for the account, by service, kept in the person's own
+ * folder (~/.ting/account.json, or TING_HOME's), never in a world's folder.
+ */
+const accountFile = () => path.join(process.env.TING_HOME ?? path.join(os.homedir(), '.ting'), 'account.json')
+const readAccount = () => { try { return JSON.parse(fs.readFileSync(accountFile(), 'utf8')) } catch { return {} } }
+function writeAccount(data) {
+  fs.mkdirSync(path.dirname(accountFile()), { recursive: true })
+  fs.writeFileSync(accountFile(), JSON.stringify(data, null, 2) + '\n', { mode: 0o600 })
+}
+const tokenFor = server => readAccount()[server.replace(/\/$/, '')]?.token
+/** What opens a world from here: its key, if the folder has one, else the account Claude Code is connected to. */
+function authOf(sync) {
+  const auth = sync.code ?? tokenFor(sync.server)
+  if (!auth) throw new Problem('This world was opened with your Ting account, and Claude Code isn\'t connected to it here: run login')
+  return auth
+}
 
 /** An error a person can act on, from the service or from here. */
 class Problem extends Error {
@@ -102,6 +126,50 @@ async function writeKit(server, world, folder, own = false, map) {
 }
 /** The request being worked on, from the Studio (`studio` keeps it). */
 const requestFile = folder => path.join(folder, '.ting', 'request.json')
+/** Waiting for any of an account's worlds: which world's folder the request being worked on is in. */
+const currentFile = folder => path.join(folder, '.ting', 'current.json')
+const workingIn = folder => (!fs.existsSync(requestFile(folder)) && fs.existsSync(currentFile(folder)) ? path.join(folder, JSON.parse(fs.readFileSync(currentFile(folder), 'utf8')).folder) : folder)
+
+/** A world opened by its id, with the account Claude Code is connected to, into a folder (its id's, here, unless named). */
+async function openWith(server, id, folder, { kit = true } = {}) {
+  const token = tokenFor(server)
+  if (!token) throw new Problem('Claude Code isn\'t connected to your Ting account yet: run login (or open the world by its key)')
+  folder = folder ?? id
+  const sync = { server, id }
+  if (fs.existsSync(syncFile(folder))) {
+    const was = readSync(folder)
+    if (was.id !== id) throw new Problem(`${folder} holds ${was.id}, not ${id}`)
+    if (changedHere(folder, was)) throw new Problem(`${folder} has changes that aren't on the service: push them, or pull --force`)
+    Object.assign(sync, was)
+  }
+  const info = await call(server, 'GET', `/api/packs/${id}`, { code: token })
+  if (!info.mine) throw new Problem(`${id} isn't one of your worlds`)
+  const pack = await call(server, 'GET', `/packs/${id}/pack.json?v=${info.latest}`, { code: token })
+  take(folder, sync, pack, info.latest)
+  const files = kit && !fs.existsSync(path.join(folder, 'kit')) ? await writeKit(server, pack.world, folder, pack.kind === 'world', pack.map) : 0
+  return { ok: true, id, folder, version: info.latest, title: pack.title, world: pack.world, kit: files,
+    say: `Opened ${pack.title} (${id}, version ${info.latest}) into ${folder}${files ? `, with its kit` : ''}` }
+}
+
+/** Waits for what's asked of any of the account's worlds, and opens that world here (in a folder of its own). */
+async function studioForAccount(folder, { wait = 540 } = {}) {
+  const server = DEFAULT_SERVER.replace(/\/$/, ''), token = tokenFor(server)
+  if (!token) throw new Problem(`This isn't a world's folder, and Claude Code isn't connected to your Ting account yet: run login first (or open a world by its key, and run studio in its folder)`)
+  const until = Date.now() + wait * 1000
+  let request = null
+  while (!request && Date.now() < until) {
+    const left = Math.max(1, Math.ceil((until - Date.now()) / 1000))
+    ;({ request } = await call(server, 'GET', `/api/requests/next?wait=${Math.min(50, left)}`, { code: token }))
+  }
+  if (!request) return { ok: true, waiting: true, say: 'Nothing asked in the Studio yet. Run studio again to keep waiting.' }
+  const where = path.join(folder, request.pack)
+  const opened = await openWith(server, request.pack, where)
+  fs.writeFileSync(requestFile(where), JSON.stringify(request, null, 2) + '\n')
+  fs.mkdirSync(path.join(folder, '.ting'), { recursive: true })
+  fs.writeFileSync(currentFile(folder), JSON.stringify({ folder: request.pack }) + '\n')
+  return { ok: true, request, folder: where, version: opened.version, say: [`The Studio asks, for ${opened.title} (request ${request.id}, version ${opened.version}, in ${where}): ${ASKS[request.kind](request)}`,
+    `Work in ${where}. Say how it's going: progress <0-100> <what you're doing>. Save versions as you go (push ${where}). When it's done: done <one line on what you did>.`].join('\n') }
+}
 function readRequest(folder) {
   if (!fs.existsSync(requestFile(folder))) throw new Problem('There\'s no request being worked on here: run studio to wait for one')
   return JSON.parse(fs.readFileSync(requestFile(folder), 'utf8'))
@@ -145,7 +213,8 @@ const commands = {
     if (!own && !process.env.TING_ADMIN_KEY) throw new Problem("Ting's towns' own stories are Ting's to add to: make a world of your own over one of its settings instead (leave out --after).")
     folder = folderFor(folder, id)
     if (fs.existsSync(packFile(folder))) throw new Problem(`${folder} already has a pack.json: start the new pack in another folder`)
-    const made = await call(server, 'POST', '/api/packs/new', { body: own ? { id, world, kind: 'world', map, title, by, invite } : { id, world, after, by, invite }, headers: own ? {} : tingHeaders() })
+    // (Connected to a Ting account: the world is that account's.)
+    const made = await call(server, 'POST', '/api/packs/new', { code: tokenFor(server), body: own ? { id, world, kind: 'world', map, title, by, invite } : { id, world, after, by, invite }, headers: own ? {} : tingHeaders() })
     const pack = await call(server, 'GET', `/packs/${made.id}/pack.json?v=${made.version}`, { code: made.key })
     take(folder, { server, id: made.id, code: made.key }, pack, made.version)
     const files = await writeKit(server, world, folder, own, map)
@@ -163,7 +232,9 @@ const commands = {
   },
 
   async open(code, folder, { server = DEFAULT_SERVER, kit = true } = {}) {
-    if (!code) throw new Problem('Open which pack? Give its code (ting-XXXX-…)')
+    if (!code) throw new Problem('Open which world? Give its id (connected to your Ting account: login), or its key (ting-XXXX-…)')
+    // (A world's id, with the account Claude Code is connected to; or its key.)
+    if (!code.startsWith('ting-')) return openWith(server, code, folder, { kit })
     const { id } = await call(server, 'GET', '/api/open', { code })
     folder = folderFor(folder, id)
     if (fs.existsSync(syncFile(folder))) {
@@ -183,7 +254,7 @@ const commands = {
   async check(folder) {
     const sync = readSync(folder)
     const { pack } = readPack(folder)
-    const tried = await call(sync.server, 'POST', `/api/packs/${sync.id}/check`, { code: sync.code, body: { pack } })
+    const tried = await call(sync.server, 'POST', `/api/packs/${sync.id}/check`, { code: authOf(sync), body: { pack } })
     fs.mkdirSync(path.join(folder, '.ting'), { recursive: true })
     fs.writeFileSync(path.join(folder, '.ting', 'script.md'), tried.script)
     fs.writeFileSync(path.join(folder, '.ting', 'check.json'), JSON.stringify(tried.check, null, 2) + '\n')
@@ -193,8 +264,8 @@ const commands = {
 
   async status(folder) {
     const sync = readSync(folder)
-    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: sync.code })
-    const check = await call(sync.server, 'GET', `/api/packs/${sync.id}/check?v=${info.latest}`, { code: sync.code })
+    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: authOf(sync) })
+    const check = await call(sync.server, 'GET', `/api/packs/${sync.id}/check?v=${info.latest}`, { code: authOf(sync) })
     const here = changedHere(folder, sync), there = info.latest > sync.version
     return { ok: true, id: sync.id, version: sync.version, latest: info.latest, submitted: info.submitted ?? null, published: info.published, changedHere: here, newerThere: there, check, recording: info.recording ?? null,
       say: [`${sync.id}: version ${sync.version} here, ${info.latest} on the service${info.submitted ? `, ${info.submitted} sent for review` : ''}${info.published ? `, ${info.published} published` : ''}.`,
@@ -206,7 +277,7 @@ const commands = {
 
   async pull(folder, { force = false } = {}) {
     const sync = readSync(folder)
-    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: sync.code })
+    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: authOf(sync) })
     let kept
     if (changedHere(folder, sync)) {
       if (!force) throw new Problem(`${folder} has changes that aren't on the service: push them first, or pull --force (which keeps yours as pack.mine.json)`)
@@ -214,7 +285,7 @@ const commands = {
       fs.copyFileSync(packFile(folder), kept)
     }
     if (info.latest === sync.version && !kept) return { ok: true, version: sync.version, say: `Already in step (version ${sync.version})` }
-    const pack = await call(sync.server, 'GET', `/packs/${sync.id}/pack.json?v=${info.latest}`, { code: sync.code })
+    const pack = await call(sync.server, 'GET', `/packs/${sync.id}/pack.json?v=${info.latest}`, { code: authOf(sync) })
     take(folder, sync, pack, info.latest)
     return { ok: true, version: info.latest, kept, say: `Pulled version ${info.latest}${kept ? `; your changes are in ${kept}` : ''}` }
   },
@@ -223,7 +294,7 @@ const commands = {
     const sync = readSync(folder)
     const { pack, text } = readPack(folder)
     if (!changedHere(folder, sync)) return { ok: true, version: sync.version, unchanged: true, say: `Nothing to push: version ${sync.version} is what's here` }
-    const saved = await call(sync.server, 'PUT', `/api/packs/${sync.id}`, { code: sync.code, body: { pack, base: sync.version } })
+    const saved = await call(sync.server, 'PUT', `/api/packs/${sync.id}`, { code: authOf(sync), body: { pack, base: sync.version } })
     writeSync(folder, { ...sync, version: saved.version, hash: hash(text) })
     return { ok: saved.check.ok, version: saved.version, check: saved.check, say: `Saved version ${saved.version}. ${listed(saved.check)}` }
   },
@@ -232,7 +303,7 @@ const commands = {
   async submit(folder) {
     const sync = readSync(folder)
     if (changedHere(folder, sync)) throw new Problem("There are changes here that aren't saved yet: push them first")
-    const done = await call(sync.server, 'POST', `/api/packs/${sync.id}/submit`, { code: sync.code })
+    const done = await call(sync.server, 'POST', `/api/packs/${sync.id}/submit`, { code: authOf(sync) })
     return { ok: true, ...done, say: `Version ${done.submitted} is sent for review. Once it's approved it's published, and its lines are recorded. You can keep writing meanwhile: what's sent stays as it is.` }
   },
 
@@ -251,7 +322,7 @@ const commands = {
   /** A short code to type into the app (Stories by others, signed in): then this pack's drafts show on that phone. */
   async link(folder) {
     const sync = readSync(folder)
-    const { link, minutes } = await call(sync.server, 'POST', `/api/packs/${sync.id}/link`, { code: sync.code })
+    const { link, minutes } = await call(sync.server, 'POST', `/api/packs/${sync.id}/link`, { code: authOf(sync) })
     return { ok: true, link, minutes,
       say: `${link}\nOn your phone, in Ting: Quests, then Stories by others, then "Link a pack". Type ${link} (it lasts ${minutes} minutes). Then every version you save shows there, to play before you publish.` }
   },
@@ -271,17 +342,19 @@ const commands = {
    * what to do. The request is kept in .ting/request.json until it's done.
    */
   async studio(folder, { wait = 540 } = {}) {
+    // Not in a world's folder: wait for any of the account's worlds, each opened into a folder here as it's asked about.
+    if (!fs.existsSync(syncFile(folder))) return studioForAccount(folder, { wait })
     const sync = readSync(folder)
     if (changedHere(folder, sync)) throw new Problem("There are changes here that aren't saved yet: push them (or pull --force), then wait again")
     const until = Date.now() + wait * 1000
     let request = null
     while (!request && Date.now() < until) {
       const left = Math.max(1, Math.ceil((until - Date.now()) / 1000))
-      ;({ request } = await call(sync.server, 'GET', `/api/packs/${sync.id}/requests/next?wait=${Math.min(50, left)}`, { code: sync.code }))
+      ;({ request } = await call(sync.server, 'GET', `/api/packs/${sync.id}/requests/next?wait=${Math.min(50, left)}`, { code: authOf(sync) }))
     }
     if (!request) return { ok: true, waiting: true, say: 'Nothing asked in the Studio yet. Run studio again to keep waiting.' }
-    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: sync.code })
-    if (info.latest !== sync.version) take(folder, sync, await call(sync.server, 'GET', `/packs/${sync.id}/pack.json?v=${info.latest}`, { code: sync.code }), info.latest)
+    const info = await call(sync.server, 'GET', `/api/packs/${sync.id}`, { code: authOf(sync) })
+    if (info.latest !== sync.version) take(folder, sync, await call(sync.server, 'GET', `/packs/${sync.id}/pack.json?v=${info.latest}`, { code: authOf(sync) }), info.latest)
     fs.writeFileSync(requestFile(folder), JSON.stringify(request, null, 2) + '\n')
     return { ok: true, request, version: info.latest, say: [`The Studio asks (request ${request.id}, on version ${info.latest}): ${ASKS[request.kind](request)}`,
       'Say how it\'s going as you work: progress <0-100> <what you\'re doing>. Save versions as you go (push). When it\'s done: done <one line on what you did>.'].join('\n') }
@@ -289,22 +362,63 @@ const commands = {
 
   /** How the request is going (`pct`, 0 to 100, and a line on what's happening): the Studio shows it. */
   async progress(pct, text, folder = '.') {
+    folder = workingIn(folder)
     const sync = readSync(folder), request = readRequest(folder)
-    await call(sync.server, 'POST', `/api/requests/${request.id}/progress`, { code: sync.code, body: { pct: Number(pct), text } })
+    await call(sync.server, 'POST', `/api/requests/${request.id}/progress`, { code: authOf(sync), body: { pct: Number(pct), text } })
     return { ok: true, say: `${pct}%: ${text}` }
   },
 
   /** The request is done (or `failed`), with a line on what was done. */
   async done(summary, folder = '.', { failed = false } = {}) {
+    const root = folder
+    folder = workingIn(folder)
     const sync = readSync(folder), request = readRequest(folder)
     if (changedHere(folder, sync)) throw new Problem("There are changes here that aren't saved yet: push them first, so the Studio has them")
-    await call(sync.server, 'POST', `/api/requests/${request.id}/done`, { code: sync.code, body: failed ? { ok: false, error: summary } : { ok: true, summary } })
+    await call(sync.server, 'POST', `/api/requests/${request.id}/done`, { code: authOf(sync), body: failed ? { ok: false, error: summary } : { ok: true, summary } })
     fs.rmSync(requestFile(folder))
+    fs.rmSync(currentFile(root), { force: true })
     return { ok: true, say: `Told the Studio: ${failed ? 'it stopped' : 'done'}${summary ? ` (${summary})` : ''}. Run studio to wait for the next request.` }
+  },
+
+  /**
+   * Connects Claude Code to the person's Ting account: a code to enter in the Studio, signed in. With `wait`, waits
+   * (up to 9 minutes) for them to allow it, then keeps the account's token on this computer.
+   */
+  async login({ server = DEFAULT_SERVER, wait = false } = {}) {
+    server = server.replace(/\/$/, '')
+    const all = readAccount(), here = all[server] ?? {}
+    if (here.token && !wait) return { ok: true, connected: true, say: `Claude Code is connected to your Ting account on ${server}. (logout to disconnect it here)` }
+    if (!wait || !here.pending) {
+      const started = await call(server, 'POST', '/api/connect', { body: { name: `Claude Code on ${os.hostname().split('.')[0]}` } })
+      writeAccount({ ...all, [server]: { ...here, pending: { device: started.device, code: started.code, expires: Date.now() + started.minutes * 60e3 } } })
+      if (!wait) return { ok: true, code: started.code, url: `${server}/connect?code=${started.code}`,
+        say: `To connect Claude Code to your Ting account, open ${server}/connect?code=${started.code} (signed in), check the code is ${started.code}, and allow it. Then run: login --wait` }
+    }
+    const pending = readAccount()[server].pending
+    const until = Math.min(pending.expires, Date.now() + 540e3)
+    while (Date.now() < until) {
+      const r = await call(server, 'GET', `/api/connect/poll?device=${pending.device}`)
+      if (r.status === 'allowed') {
+        const now = readAccount()
+        writeAccount({ ...now, [server]: { token: r.token, account: r.account, name: r.name } })
+        return { ok: true, connected: true, say: `Connected: Claude Code works on your Ting worlds now, and waits for what you ask in the Studio (studio).` }
+      }
+      await new Promise(done => setTimeout(done, 3000))
+    }
+    return { ok: false, say: `It wasn't allowed yet. Open ${server}/connect?code=${pending.code} and allow it, then run login --wait again (or login for a new code).` }
+  },
+
+  /** Disconnects Claude Code here (to disconnect it everywhere, use the Studio: your work, Claude Code). */
+  async logout({ server = DEFAULT_SERVER } = {}) {
+    server = server.replace(/\/$/, '')
+    const { [server]: gone, ...rest } = readAccount()
+    writeAccount(rest)
+    return { ok: true, say: gone ? `Disconnected here. (The Studio still lists it until you disconnect it there.)` : 'It wasn\'t connected here.' }
   },
 
   async code(folder) {
     const sync = readSync(folder)
+    if (!sync.code) throw new Problem('This world was opened with your Ting account: it has no key here (the Studio can make one, in its Settings)')
     return { ok: true, code: sync.code, say: sync.code }
   },
 }
@@ -335,6 +449,9 @@ if (require.main === module) {
     play: () => commands.play(rest[0] ?? '.'),
     code: () => commands.code(rest[0] ?? '.'),
     studio: () => commands.studio(rest[0] ?? '.', { wait: wait ? Number(wait) : undefined }),
+    // (`--wait` on its own: `opt` above takes it as studio's `--wait <seconds>`, so it's read from the command line.)
+    login: () => commands.login({ wait: process.argv.includes('--wait') }),
+    logout: () => commands.logout(),
     progress: () => commands.progress(rest[0], rest.slice(1).join(' '), folderOpt ?? '.'),
     done: () => commands.done(rest.join(' '), folderOpt ?? '.', { failed: args.includes('--failed') }),
   }[verb]

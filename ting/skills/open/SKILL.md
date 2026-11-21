@@ -1,6 +1,6 @@
 ---
-description: Open a Ting pack by its code (ting-XXXX-XXXX-XXXX-XXXX) into this folder, with its world's kit, ready to work on. Use when someone gives a Ting code, or asks to open or carry on with their Ting pack.
-argument-hint: <code> [folder]
+description: Open a Ting world into this folder, with its kit, ready to work on - by its id (with Claude Code connected to the person's Ting account) or by its key (ting-XXXX-XXXX-XXXX-XXXX). Use when someone names one of their Ting worlds, gives a Ting key, or asks to open or carry on with their Ting world.
+argument-hint: <world id, or key> [folder]
 ---
 
 # Open a Ting pack
@@ -15,8 +15,10 @@ the service by the pack client.
    node "${CLAUDE_PLUGIN_ROOT}/scripts/ting-pack.cjs" open $ARGUMENTS
    ```
 
-   With no folder named, it opens here if this folder is empty, or else into a folder named for the pack. If
-   there's no code in the arguments, ask for it. If the folder already holds this pack, it's brought up to date
+   By its id (`nightmarket`), it needs Claude Code connected to the person's Ting account: if it says it isn't,
+   run `login` (same script), tell them the link and code it gives, then `login --wait`, and open it again. By its
+   key, it opens here if this folder is empty, or else into a folder named for it. If there's neither in the
+   arguments, ask which world (their worlds are listed on the Studio's home). If the folder already holds this pack, it's brought up to date
    (and refused if there are changes here that aren't saved: then run `status` and say what to do).
 
 2. Then run `status` in the pack's folder (same script, `status <folder>`), and read the pack's `pack.json`
@@ -32,5 +34,5 @@ the service by the pack client.
    - `/ting:link` to play it on their phone, in the Ting app,
    - `/ting:publish` to send it for review, so it can be published for players.
 
-The code is the pack's only key: anyone with it can change the pack. Never write it into any file but
+A key opens the world for anyone who has it, so treat it like a password. Never write it into any file but
 `.ting/sync.json` (where the client keeps it), and don't repeat it unless the person asks for it.
