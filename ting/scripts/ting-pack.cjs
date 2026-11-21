@@ -30,6 +30,7 @@
 //                                            in a world's folder, of that world; anywhere else, connected, of any of
 //                                            yours (each opened into a folder of its own). Then say what to do
 //   ting-pack progress <pct> <what's happening>   how the request is going, shown in the Studio as it happens
+//   ting-pack note <what was found> [--panel <id>]   a reader's finding, for the person to decide on in the Studio
 //   ting-pack done <what was done> [--failed]     the request is done (or couldn't be)
 //   add --json for one JSON object; the service is TING_SERVER (https://studio.tinglanguage.com) unless the folder says
 const fs = require('node:fs')
@@ -176,10 +177,16 @@ function readRequest(folder) {
 }
 /** What each kind of request asks, in a line. */
 const ASKS = {
-  build: () => 'build the storyboard: write the scenes its panels describe (`storyboard` in pack.json), and say which scene each panel became.',
-  propose: r => `propose a storyboard: fill in its days and panels from its description${r.note ? ` (and: "${r.note}")` : ''}, writing no scenes.`,
+  build: r => (r.day != null
+    ? `build Day ${r.day}: write the scenes its panels describe (only the panels with no scene yet: every other day stays as it is), check it, have the readers go over it, fold in what's clearly right, and send what's left with note.`
+    : 'build the storyboard: write the scenes its panels describe (only the panels with no scene yet), and say which scene each panel became.'),
+  propose: r => (r.day != null
+    ? `propose Day ${r.day}: fill in what that day is about and its panels, around the person's own, writing no scenes${r.note ? ` (and: "${r.note}")` : ''}.`
+    : `propose a storyboard: fill in its days and panels from its description${r.note ? ` (and: "${r.note}")` : ''}, writing no scenes.`),
   panel: r => `do panel ${r.panel} again: "${r.note}".`,
   ask: r => `"${r.note}"`,
+  read: r => `read Day ${r.day}: check it, and have the readers go over it (its lines, and the day as a whole). Change nothing: send each finding with note (--panel <id> when it's about one panel), for the person to decide on.`,
+  revise: r => `revise Day ${r.day}: "${r.note}". Change only that day, and nothing locked; check it, have it read, and save.`,
 }
 
 /** A check, in short, for people. */
@@ -368,6 +375,15 @@ const commands = {
     return { ok: true, say: `${pct}%: ${text}` }
   },
 
+  /** Something the readers found, for the person to decide on in the Studio: about a panel (`panel`), or the day. */
+  async note(text, folder = '.', { panel } = {}) {
+    folder = workingIn(folder)
+    const sync = readSync(folder), request = readRequest(folder)
+    if (!text) throw new Problem('Usage: note <what was found> [--panel <panel id>]')
+    await call(sync.server, 'POST', `/api/requests/${request.id}/notes`, { code: authOf(sync), body: { text, panel } })
+    return { ok: true, say: `Noted for the Studio${panel ? ` (panel ${panel})` : ''}: ${text}` }
+  },
+
   /** The request is done (or `failed`), with a line on what was done. */
   async done(summary, folder = '.', { failed = false } = {}) {
     const root = folder
@@ -430,7 +446,7 @@ if (require.main === module) {
   const json = args.includes('--json'), force = args.includes('--force')
   const opt = name => { const i = args.indexOf(name); if (i < 0) return undefined; const v = args[i + 1]; args.splice(i, 2); return v }
   // (A world of your own, and a setting's kit, unless Ting asks for its own story's: `--after`, `--story`. `--own` is the default.)
-  const wait = opt('--wait'), folderOpt = opt('--folder')
+  const wait = opt('--wait'), folderOpt = opt('--folder'), panelOpt = opt('--panel')
   const world = opt('--world'), after = opt('--after'), by = opt('--by'), invite = opt('--invite'), title = opt('--title'), map = opt('--map'), story = args.includes('--story')
   const [verb, ...rest] = args.filter(a => !a.startsWith('--'))
   const run = {
@@ -454,6 +470,7 @@ if (require.main === module) {
     logout: () => commands.logout(),
     progress: () => commands.progress(rest[0], rest.slice(1).join(' '), folderOpt ?? '.'),
     done: () => commands.done(rest.join(' '), folderOpt ?? '.', { failed: args.includes('--failed') }),
+    note: () => commands.note(rest.join(' '), folderOpt ?? '.', { panel: panelOpt }),
   }[verb]
   if (!run) {
     const lines = fs.readFileSync(__filename, 'utf8').split('\n').slice(1)
