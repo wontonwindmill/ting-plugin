@@ -14,7 +14,7 @@ Starting one makes a starter on the service (playable and passing its checks fro
    they're teaching and the place: `chinese` is the mountain town, `chinese` with `--map city` the city,
    `japanese2` the rural village. If it isn't clear from what they've said, ask.
 
-2. **Its id and title.** The id is short, lower-case letters and digits, from the idea (`nightmarket`, `catdesk`):
+2. **Its id and title.** The id is short, lower-case letters and digits, from the idea (`schooltrip`, `catdesk`):
    every one of its quest ids will start with it. The title is what players see.
 
 3. **Start it.** Starting a world needs the invite code Ting gave them (`INV-XXXX-XXXX`): ask for it if they

@@ -30,6 +30,8 @@ If you can't write the arc in one sentence, that's the first finding.
 - **Fun and rhythm.** Where would a player get bored, feel it's a grind, or click ahead without thinking? Is there a real challenge with consequences? Is there a payoff, a laugh, a warm moment? Is it the right length?
 - **Clear goals.** Does the player always know what they're doing and why (the goal on screen, and why it helps)?
 - **Words.** Are the day's new words used, and used again, in ways that matter? Too many at once, or a day with nothing new?
+- **Its own day, not a template** (§12). Does each guest have a beat of their own (a want, a surprise, a mood that changes how the desk goes), or is it the last guest with a new name? Does each scene open on what's happening, not the same greeting? Does a fact win more than one encounter? Compare with the days before: the check's "Twins" and "Openings" notes name scenes that share lines word for word.
+- **Real questions and fair turns.** Does anyone test the player on something they already know, with an excuse (bad eyes, bad ears)? Could a player win a turn from the English alone, or by picking the kindest option?
 
 Be concrete. "Day 5 feels slow" isn't a finding; "Day 5's three errands are all 'walk somewhere, pick a reply', and none changes anything later: make the tea one a haggle with Uncle Zhang on the bar" is.
 

@@ -59,7 +59,10 @@ The pack in one sentence: what's at stake, and what's different at the end. Then
   (a small job, never a tap-through).
 - **Setups and payoffs:** what each day plants and pays off. Leave the world's own threads as they are:
   the pack adds, it never changes what happens in the world.
-- **House rules:** no feuds in town; nobody quizzes the player except in character with a reason; each
+- **The facts sheet:** a short **Facts** list the writing and the readers check every line against: prices
+  (what each thing costs, and in what words: 块 aloud), rooms (who sleeps where, what's in them), times (what's
+  open when, which train), who knows what and from when, and promises made. The arc reader holds the days to it.
+- **House rules:** no feuds in town; nobody quizzes the player (a question is real only when the asker doesn't know the answer; a game is fine when it's plainly one); each
   person keeps their own job.
 
 ## 5. What Ting can't do yet
@@ -70,7 +73,7 @@ uses that), and the wish, one line. Never plan around a mechanic that isn't ther
 ## 6. Write it, and have it read
 
 1. Write `plan.md`: the assumptions; the one-sentence arc; the word plan (a table, then the totals); each
-   day; the cast, places and papers; the wishes.
+   day; the facts sheet; the cast, places and papers; the wishes.
 2. Have it read: send the **ting:day-reader** agent the plan with the days before it from the kit, telling it
    this is a plan, not a script, so it judges the design (a problem, a choice, variety, the key in the
    language), not the lines.

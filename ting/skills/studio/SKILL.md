@@ -107,7 +107,9 @@ reading (`read`) change none.
   so the Studio can open it. A blank panel is yours to choose, and may become several scenes (add panels for them,
   after it, and say so in their notes). Words: the board's `words`, or choose them from the brief and the world's
   `level`; a new day carries on from the words the days before it taught (bring them back, then teach new ones).
-  Check, then push, after each day, with a progress line. Then the readers go over the day: fold in what's
+  Check, then push, after each day, with a progress line. Then the readers go over the day (the line, day and
+  guess readers), and once the build is done, the arc reader over the whole world with the plan's facts sheet
+  (keep one in `plan.md`: prices, rooms, times, who knows what, and add to it as you write): fold in what's
   clearly right (a wrong word, a clumsy line) in the scenes you've just written (the person hasn't seen them yet),
   and send each thing that's the person's call, and anything about what was there before, with `note`.
 - **Ting's own story** (`"original": true` in `pack.json`: 云来's, or 森野's, shared by Ting's team) is a world
@@ -116,8 +118,9 @@ reading (`read`) change none.
   morning), never with the world's id. And players are part-way through it: change a day they may have played only
   when the request is about it, and never take a scene away (rename nothing; a release that drops one is refused).
 - **A world just started in the Studio** has placeholders: one arrival scene (`<id>_arrive`, a line from `host`),
-  and a town called 小镇 in its `setup`. Make them the board's: the town's name, its people and its Day 0, from the
-  brief and the board (`kit/writing-worlds.md` says what a world's `setup` needs).
+  and a town called 小镇 in its `setup`, and the byline "Your name, as you'd like to be credited". Make them the
+  board's: the town's name, its people and its Day 0, from the brief and the board (the byline is the person's:
+  ask them for it, never make one up; a world with placeholders can't be sent for review; `kit/writing-worlds.md` says what a world's `setup` needs).
 - **propose:** fill the board in, and write no scenes (with a `day`: only that day). Every day gets its number (`"day": 0`,
   `1`, … in order, as its scenes' `day`: the Studio asks for a day by it), what it's about
   (`about`, with `aiAbout: true` where you wrote it), and panels in order (a `mechanic` and a `note` each), around
@@ -127,8 +130,10 @@ reading (`read`) change none.
   in `kit/writing-packs.md` has it (3 to 5 new words a day, a day that brings them back after every two that teach
   them, and one at the end). A new day follows from the days before it: what's happened, who's met, which words are
   known. Push.
-- **read:** go over that day (with no `day`: the whole world, each day and across them) and change nothing. Run `check`, then the line reader and the day reader on it (the
-  plugin's `ting:line-reader` and `ting:day-reader` agents, given the day's scenes from `.ting/script.md`). Send each
+- **read:** go over that day (with no `day`: the whole world, each day and across them) and change nothing. Run `check`, then the line reader, the day reader and the guess reader on it (the
+  plugin's `ting:line-reader`, `ting:day-reader` and `ting:guess-reader` agents, given the day's scenes from
+  `.ting/script.md`); for the whole world, the `ting:arc-reader` across the days too. The check's notes are
+  findings to weigh as well (an explanation, a crammed word, twin scenes). Send each
   finding as its own `note`, in a sentence the person can act on, with `--panel <panel id>` when it's about one
   panel's scene:
 

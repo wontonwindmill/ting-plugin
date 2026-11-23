@@ -15,7 +15,7 @@ the service by the pack client.
    node "${CLAUDE_PLUGIN_ROOT}/scripts/ting-pack.cjs" open $ARGUMENTS
    ```
 
-   By its id (`nightmarket`), it needs Claude Code connected to the person's Ting account: if it says it isn't,
+   By its id (`schooltrip`), it needs Claude Code connected to the person's Ting account: if it says it isn't,
    run `login` (same script), tell them the link and code it gives, then `login --wait`, and open it again. By its
    key, it opens here if this folder is empty, or else into a folder named for it. If there's neither in the
    arguments, ask which world (their worlds are listed on the Studio's home). If the folder already holds this pack, it's brought up to date
