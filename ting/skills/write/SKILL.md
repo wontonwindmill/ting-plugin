@@ -48,7 +48,20 @@ refuses them). The schema is long: the example worlds show each step kind's fiel
 ## 3. Write it
 
 Every line in the house voice: clear full sentences, natural English, the language only as taught, one topic
-per run of lines.
+per run of lines. **At the world's `level`:** a beginner's world (0) is English with the taught words in it. A
+Chinese world for learners past beginners (`"level"` 1 or more) is written in two goes:
+1. **You write every line in English**, as the scene should go: natural, clear, in each person's voice, with the
+   taught words in Chinese where they're used and names as the glossary writes them. Options, a build's tiles and a
+   note's phrases too, in English, as they tie to the lines.
+2. **`level` writes them in Chinese at the level** (on the service: what each line does is read first, then the
+   Chinese written from that, checked, and read by a native speaker). It saves a version and pulls it. Lines it has
+   written already, and lines the person keeps exactly, are left alone; so a line you change by hand afterwards
+   stays, if it passes.
+How much is Chinese follows the level (`kit/writing-worlds.md` has lines at each): at HSK 1, English with whole short
+Chinese pieces (好的。谢谢！); at HSK 2, short lines in Chinese; from HSK 3, what people say is in Chinese, English only
+for a word above the level that isn't taught. A line may reach one word from the level above (tapped for its meaning).
+The quest bar, the sky's lines and Ting's help stay in English. (A Japanese world is written in its language at its
+level by you: there's no `level` for it yet.)
 
 **The rules that bite** (each one costs a round):
 - **Correct language only.** In 云来 (Chinese): 不 only right before a verb or adjective (不要, 不好), never
@@ -80,6 +93,9 @@ per run of lines.
 ## 4. Make it play
 
 Loop until clean:
+0. **Level it** (a Chinese world past beginners): `level`, once the day's scenes are written in English and saved
+   (it pushes what's here first). It says what it wrote, and lists any line it couldn't get to pass: fix those by
+   hand, in Chinese at the level. Run it again after you add scenes or rewrite lines in English; the rest stays.
 1. **Check:** `check`. No ✗ problems. Read every note (explanations, 元 said aloud, crammed words, twin scenes,
    pet phrases, words that could come back more): fix what's real. Coming back is an ideal: bring a word back
    where a later scene needs it, never by saying it more. "Before it goes out" lists what must be done before

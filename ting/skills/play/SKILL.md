@@ -14,9 +14,9 @@ argument-hint: [folder]
    ```
 
 3. Give the person the link it prints, and tell them:
-   - It opens Ting Studio: the town's whole story, day by day, with the pack's quests laid in where they go (marked
-     with the pack's name), each one's steps, words and checks. The game plays in a phone beside it: pick a step and
-     the game goes there, with the story before it already played.
+   - It opens the world's board in Ting Studio: its days as rows of scenes. Open a scene to step through it, the
+     game playing each step beside its lines; **Play** plays the world beside the board, and **Play from here** on a
+     scene starts it there.
    - Lines nobody has recorded yet are said by the browser's own voice: flatter than the town's voices, and now and
      then wrong on a tone. Once the pack's published, its lines are recorded in the town's voices.
    - After saving again, reload the page for the new version.

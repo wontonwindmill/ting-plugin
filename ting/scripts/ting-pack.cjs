@@ -15,6 +15,10 @@
 //                                            it's empty, else ./<id>)
 //   ting-pack check [folder]                 check what's here and script it (.ting/script.md), saving nothing
 //   ting-pack push [folder]                  save a new version, checked; refused if there's a newer one to pull
+//   ting-pack level [folder] [--quest <id>]  the world's lines written at its level by Ting (who it's for: Chinese,
+//                                            as a native speaker would say it), on the service: pushes what's here
+//                                            first, waits for it (a few minutes), then pulls the version it saves.
+//                                            Lines already written at the level, and lines you keep exactly, stay
 //   ting-pack pull [folder] [--force]        take the latest version (--force: even over changes here, kept aside)
 //   ting-pack status [folder]                changed here? newer there? and its last check
 //   ting-pack submit [folder]                send the latest saved version for review; Ting publishes it once approved
@@ -181,11 +185,11 @@ function readRequest(folder) {
 /** What each kind of request asks, in a line. */
 const ASKS = {
   build: r => (r.day != null
-    ? `write Day ${r.day}: the scenes its panels describe (only the panels with no scene yet: every other day stays as it is), check it, have the readers go over it, fold in what's clearly right in what you just wrote, and send what's left with note.`
-    : 'write the storyboard: the scenes its panels describe (only the panels with no scene yet), and say which scene each panel became.'),
+    ? `write Day ${r.day}: a scene for each of its panels with no scene yet, one panel one scene, kept to each panel's place, who and planned steps (every other day stays as it is), check it, have the readers go over it, fold in what's clearly right in what you just wrote, and send what's left with note.`
+    : 'write the storyboard: a scene for each panel with no scene yet, one panel one scene, kept to its place, who and planned steps; and set each panel\'s scene.'),
   propose: r => (r.day != null
     ? `fill in Day ${r.day}: what that day is about and its panels, around the person's own, writing no scenes${r.note ? ` (and: "${r.note}")` : ''}.`
-    : `fill in the storyboard: its days and panels from its description, its level and its target${r.note ? ` (and: "${r.note}")` : ''}, writing no scenes.`),
+    : `fill in the storyboard: its days and panels (one a scene: where, who, and its planned steps) from its description, its level and its target${r.note ? ` (and: "${r.note}")` : ''}, writing no scenes.`),
   panel: r => `do panel ${r.panel} again: "${r.note}".`,
   ask: r => `"${r.note}"`,
   read: r => (r.day != null
@@ -316,6 +320,33 @@ const commands = {
     return { ok: saved.check.ok, version: saved.version, check: saved.check, say: `Saved version ${saved.version}. ${listed(saved.check)}` }
   },
 
+  /**
+   * The world's lines written at its level, on the service (services/packs/level.cjs): what's here pushed first,
+   * then waited for, and the version it saves pulled. `quest`: only that scene.
+   */
+  async level(folder, { quest, wait = 900, progress = () => {} } = {}) {
+    if (changedHere(folder, readSync(folder))) await commands.push(folder)
+    const sync = readSync(folder)
+    const { job } = await call(sync.server, 'POST', `/api/packs/${sync.id}/level`, { code: authOf(sync), body: quest ? { quests: [quest] } : {} })
+    let state, seen = 0
+    for (const end = Date.now() + wait * 1000; Date.now() < end;) {
+      await new Promise(r => setTimeout(r, 3000))
+      state = await call(sync.server, 'GET', `/api/packs/${sync.id}/level/${job}`, { code: authOf(sync) })
+      for (const l of state.log.slice(seen)) progress(l.text)
+      seen = state.log.length
+      if (state.status !== 'running') break
+    }
+    if (state?.status === 'running') return { ok: false, job, say: `Still going on the service (pass ${job}): run level again later, or pull once it's saved` }
+    if (state?.status === 'failed') throw new Problem(`The level pass stopped: ${state.error}`)
+    const r = state.report
+    if (!state.version) return { ok: true, report: r, say: state.log.at(-1)?.text ?? 'Nothing to do' }
+    await commands.pull(folder)
+    const left = r.left.map(l => `  ✗ ${l.scene} ${l.line}: "${Array.isArray(l.says) ? l.says.join(' ') : l.says}"\n${l.problems.map(p => `      ${p}`).join('\n')}`)
+    return { ok: !r.left.length, version: state.version, report: r,
+      say: [`Saved version ${state.version} and pulled it: ${r.written} line${r.written === 1 ? '' : 's'} written in ${r.scenes} scene${r.scenes === 1 ? '' : 's'} for its level, ${r.fixed} fixed after the check, ${r.reread} changed by the native reader ($${r.usd}).`,
+        ...(left.length ? ['Still to look at (fix these by hand, or say them another way, and push):', ...left] : ['Every line passes.'])].join('\n') }
+  },
+
   /** Sends the latest saved version for review: Ting publishes it once it's approved (and records its lines). */
   async submit(folder) {
     const sync = readSync(folder)
@@ -351,7 +382,7 @@ const commands = {
     // (Its code goes after the #: the browser keeps it for this pack and never sends it; drafts are their makers'.)
     const url = `${site}/studio/${sync.id}#code=${sync.code}`
     return { ok: true, url, game: `${site}/play/${sync.id}`,
-      say: `${url}\nYour latest saved version in Ting Studio, playing beside it (Chrome, Edge or Safari 26). Changes here show once they're saved; reload to see them.` }
+      say: `${url}\nYour latest saved version on its board in Ting Studio; Phone plays it beside the board (Chrome, Edge or Safari 26). Changes here show once they're saved; reload to see them.` }
   },
 
   /**
@@ -484,7 +515,7 @@ if (require.main === module) {
   const json = args.includes('--json'), force = args.includes('--force')
   const opt = name => { const i = args.indexOf(name); if (i < 0) return undefined; const v = args[i + 1]; args.splice(i, 2); return v }
   // (A world of your own, and a setting's kit, unless Ting asks for its own story's: `--after`, `--story`. `--own` is the default.)
-  const wait = opt('--wait'), folderOpt = opt('--folder'), panelOpt = opt('--panel'), fileOpt = opt('--file')
+  const wait = opt('--wait'), questOpt = opt('--quest'), folderOpt = opt('--folder'), panelOpt = opt('--panel'), fileOpt = opt('--file')
   const world = opt('--world'), after = opt('--after'), by = opt('--by'), invite = opt('--invite'), title = opt('--title'), map = opt('--map'), story = args.includes('--story')
   const [verb, ...rest] = args.filter(a => !a.startsWith('--'))
   const run = {
@@ -498,6 +529,7 @@ if (require.main === module) {
     status: () => commands.status(rest[0] ?? '.'),
     pull: () => commands.pull(rest[0] ?? '.', { force }),
     push: () => commands.push(rest[0] ?? '.'),
+    level: () => commands.level(rest[0] ?? '.', { quest: questOpt, progress: json ? () => {} : t => console.log(`… ${t}`) }),
     publish: () => commands.publish(rest[0] ?? '.', { original: args.includes('--original') }),
     link: () => commands.link(rest[0] ?? '.'),
     play: () => commands.play(rest[0] ?? '.'),

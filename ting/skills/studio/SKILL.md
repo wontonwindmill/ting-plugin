@@ -50,9 +50,13 @@ Keep the person in the loop the Studio's way: they're watching the board while y
 **What the board says** (`storyboard` in `pack.json`, described in `kit/writing-worlds.md`): `brief`, what the
 world is about; `words`, the words wanted; `target`, how many words to teach (`words`) over how many days (`days`),
 with the world's `level` (in `pack.json`: who it's for); `days`, each with its number (`day`), what it's `about`
-and its `panels` in order, each a moment (`mechanic`: a step kind, or `blank` for you to choose) with a `note` on
-what happens, and, once written, the `scene` it became. A blank day or panel follows the one above it, and the brief
-rules them all.
+and its `panels` in order. **A panel is one scene**: a `note` on what happens in it; where it happens (`place`:
+`town`, or one of the world's sets); who starts it (`who`, a person's id) and who else is in it (`with`); the steps
+it's to have, in order (`steps`, each a step `kind` and a `note`); and, once written, the `scene` (quest id) it
+became. What's set is kept to: the scene happens there, is started by that person, and has those steps in that order
+(you write the steps between them it needs); what's unset is yours to choose. An older panel with only a `mechanic` is
+a scene whose first step is that kind (`blank`: yours to choose). A blank day or panel follows the one above it, and
+the brief rules them all.
 
 **What the person keeps.** Anything on the board can carry a setting, `keep`: on the world, a day, a panel, or one
 line of a panel's scene (the panel's `lines`, by `<step id>/<field>/…`). The most specific one wins; unset, a thing
@@ -103,12 +107,15 @@ reading (`read`) change none.
 
 - **build:** write the scenes for the panels with no `scene` yet (with a `day`: only that day's), as `/ting:write`
   does (read its skill for the rules and the readers; wait for each reader, never leave one running), one day at a
-  time in the board's order. Each panel becomes a scene, or part of one: set its `scene` to the quest id it became,
-  so the Studio can open it. A blank panel is yours to choose, and may become several scenes (add panels for them,
-  after it, and say so in their notes). Words: the board's `words`, or choose them from the brief and the world's
+  time in the board's order. Each panel becomes one scene, and one scene only (never two panels in one scene, never
+  one panel split into several): set its `scene` to the quest id it became, so the Studio can open it. A scene the
+  day needs that no panel asks for (a morning, a walk between two places): add a panel for it where it comes, with
+  its `note`, `place`, `who` and `steps` filled in, so the board shows every scene. Words: the board's `words`, or choose them from the brief and the world's
   `level`; a new day carries on from the words the days before it taught (bring them back, then teach new ones).
-  Check, then push, after each day, with a progress line. Then the readers go over the day (the line, day and
-  guess readers), and once the build is done, the arc reader over the whole world with the plan's facts sheet
+  Check, then push, after each day, with a progress line. A Chinese world past beginners (`level` 1 or more) is
+  written as `/ting:write` says: its lines in English, then `level ./<world id>` writes them in Chinese at its level
+  (it pushes, waits a few minutes, and pulls what it saved: say so with a progress line first). Then the readers go
+  over the day (the line, day and guess readers), and once the build is done, the arc reader over the whole world with the plan's facts sheet
   (keep one in `plan.md`: prices, rooms, times, who knows what, and add to it as you write): fold in what's
   clearly right (a wrong word, a clumsy line) in the scenes you've just written (the person hasn't seen them yet),
   and send each thing that's the person's call, and anything about what was there before, with `note`.
@@ -117,14 +124,17 @@ reading (`read`) change none.
   them): name new ones the way the story does (`q_<name>` for a story, `g_<name>` for a guest, `m_day<N>` for a
   morning), never with the world's id. And players are part-way through it: change a day they may have played only
   when the request is about it, and never take a scene away (rename nothing; a release that drops one is refused).
-- **A world just started in the Studio** has placeholders: one arrival scene (`<id>_arrive`, a line from `host`),
-  and a town called 小镇 in its `setup`, and the byline "Your name, as you'd like to be credited". Make them the
-  board's: the town's name, its people and its Day 0, from the brief and the board (the byline is the person's:
-  ask them for it, never make one up; a world with placeholders can't be sent for review; `kit/writing-worlds.md` says what a world's `setup` needs).
+- **A world just started in the Studio** has placeholders: one arrival scene (`<id>_arrive`, "Off the Train", a line
+  in English from `host`), a town called 小镇 in its `setup`, and the byline "Your name, as you'd like to be credited".
+  Make them the board's: the town's name, its people and its Day 0, from the brief and the board. Where Day 0 has an
+  arrival of its own, take the starter's out: any request may, while it's as the starter left it. The byline is the
+  person's: ask them for it, never make one up. A world with placeholders can't be sent for review
+  (`kit/writing-worlds.md` says what a world's `setup` needs).
 - **propose:** fill the board in, and write no scenes (with a `day`: only that day). Every day gets its number (`"day": 0`,
   `1`, … in order, as its scenes' `day`: the Studio asks for a day by it), what it's about
-  (`about`, with `aiAbout: true` where you wrote it), and panels in order (a `mechanic` and a `note` each), around
-  the person's own (leave `mine` and `keep` off the panels you add: they're the person's to give). Words: the
+  (`about`, with `aiAbout: true` where you wrote it), and panels in order, one a scene: each with a `note`, its
+  `place` and `who` (and `with`, where someone else matters), and 2 to 4 planned `steps` (a `kind` and a `note` each;
+  its `mechanic` the first step's kind), around the person's own (leave `mine` and `keep` off the panels you add: they're the person's to give). Words: the
   board's `words`, then choose more at the world's `level` until there are `target.words` (10 to 20 for a first
   world when there's no target), into `storyboard.words`. Days: `target.days` if it's set, else as the length rule
   in `kit/writing-packs.md` has it (3 to 5 new words a day, a day that brings them back after every two that teach
@@ -146,8 +156,15 @@ reading (`read`) change none.
   nothing else, and nothing kept. A note that starts "Rebuild" asks for the whole day again as one pass: rewrite
   its open scenes together, so it reads as one day, from the person's drafts (`idea`), comments and notes, keeping
   every `exact` line word for word. Check it, have it read, push.
-- **panel:** do that one panel's scene again, as the note asks. Change nothing else. Check, push.
+- **panel:** do that one panel's scene again, as the note asks. Change nothing else. Check, push. (A Chinese world
+  past beginners: written in English, then `level ./<world id> --quest <its scene>`.)
 - **ask:** do what the note says, as the person would in a conversation with you. Check, push.
+
+A `revise` or `ask` can carry changes the person made on the board, one per line: a description, summary or
+note that changed (change what's written from it to match), a scene **moved** (it already happens at its new
+place, started by its new person: fit its lines, its things and who's there to that), or a person **moved in the
+town** (their `at` is already changed: fit any line that says where they are, or that sends the player to find
+them). The move itself is done; don't move it back. Change as little as each needs.
 
 Then say it's done, in a line the Studio shows:
 
